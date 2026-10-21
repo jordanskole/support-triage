@@ -1,6 +1,5 @@
-// The teams as they were in Hygraph on 2026-10-21, ids included so the
-// one-time Hygraph import lines up with seeded rows. Only fresh databases
-// read this; edit live team copy in Prisma Studio.
+// The teams as they were in Hygraph on 2026-10-21, with their original ids.
+// Only a database with no teams reads this; edit live team copy in Prisma Studio.
 export const TEAMS = [
   {
     id: "cmvfdpan4taih06lar04bdylr",

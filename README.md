@@ -95,7 +95,6 @@ Run with `-w @ac-1/db`:
 | `npm run db:seed`    | Create any missing teams                                  |
 | `npm run db:studio`  | Open Prisma Studio to browse and edit data                |
 | `npm run test:db`    | Run database tests against `DATABASE_URL_TEST`            |
-| `npm run import:hygraph` | One-time copy of Hygraph content (needs `HYGRAPH_ENDPOINT`, `HYGRAPH_TOKEN`) |
 
 ## Scripts
 
@@ -117,7 +116,7 @@ Run these from the repo root. Turborepo runs each task across all workspaces.
 - [ ] Decide how a routed request reaches its team (email, Slack, ticketing system, etc.)
 - [ ] Hosted deployment of `apps/web`
 - [ ] Admin UI for teams and triage review (replaces Prisma Studio)
-- [ ] Delete the one-time Hygraph import (`packages/db/src/import-hygraph.ts`, `src/hygraph/`) and the Hygraph project
+- [x] Migrate from Hygraph to Prisma + Postgres
 
 ## Open questions
 
