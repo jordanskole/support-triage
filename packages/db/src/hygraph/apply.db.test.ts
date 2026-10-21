@@ -3,7 +3,7 @@ import { TEAMS } from "../seed-data.js";
 import { seedTeams } from "../seed.js";
 import { resetDb, testDb } from "../test/db.js";
 import { applyImport } from "./apply.js";
-import type { ImportPlan } from "./map.js";
+import { ImportError, type ImportPlan } from "./map.js";
 
 const db = testDb();
 
@@ -61,5 +61,32 @@ describe("applyImport", () => {
     await applyImport(db, { teams: TEAMS.map((t) => ({ ...t })), users: [], formSubmissions: [], suggestedTeams: [] });
     const support = await db.team.findUniqueOrThrow({ where: { name: "Support" } });
     expect(support.description).toBe("edited in studio");
+  });
+
+  it("fails naming the user id when a different user already has the email", async () => {
+    await db.user.create({ data: { id: "studio-user", email: "ada@example.com" } });
+    const err = await applyImport(db, plan).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ImportError);
+    expect((err as Error).message).toContain("user1");
+    expect(await db.formSubmission.count()).toBe(0);
+  });
+
+  it("fails naming the team id when a different team already has the name", async () => {
+    await db.team.create({ data: { id: "studio-team", name: "Finance", description: "x" } });
+    const err = await applyImport(db, { ...plan, users: [], formSubmissions: [], suggestedTeams: [] }).catch(
+      (e: unknown) => e,
+    );
+    expect(err).toBeInstanceOf(ImportError);
+    expect((err as Error).message).toContain("team1");
+  });
+
+  it("fails naming the suggestion id when the submission already has a different suggestion", async () => {
+    await applyImport(db, { ...plan, suggestedTeams: [] });
+    await db.suggestedTeam.create({
+      data: { id: "studio-sug", formSubmissionId: "sub1", teamId: "team1", reasoning: "manual" },
+    });
+    const err = await applyImport(db, plan).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(ImportError);
+    expect((err as Error).message).toContain("sug1");
   });
 });

@@ -30,4 +30,11 @@ describe("seedTeams", () => {
     const support = await db.team.findUniqueOrThrow({ where: { name: "Support" } });
     expect(support.description).toBe("edited in studio");
   });
+
+  it("seedTeams does not recreate a team deleted from the db", async () => {
+    await seedTeams(db);
+    await db.team.delete({ where: { name: "Agency/Channel" } });
+    expect(await seedTeams(db)).toEqual({ created: 0, skipped: 5 });
+    expect(await db.team.findUnique({ where: { name: "Agency/Channel" } })).toBeNull();
+  });
 });
