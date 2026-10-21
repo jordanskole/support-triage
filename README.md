@@ -36,7 +36,7 @@ The schema lives in `packages/db/prisma/schema.prisma`. The agent doesn't hard-c
 | `FormSubmission` | `submittedValue`, `user`                                            | One free-text request                                            |
 | `SuggestedTeam`  | `formSubmission` (one per submission), `team`, `reasoning`, `hitlVerified`, `correctedTeam`, `correctedReasoning` | The agent's pick, plus a human's check or correction |
 
-Current teams: **Support**, **Sales**, **Finance**, **Product**, **Agency/Channel**. They are seeded into fresh databases from `packages/db/src/seed-data.ts`. The seed only creates missing teams, so edits made in the database are never overwritten.
+Current teams: **Support**, **Sales**, **Finance**, **Product**, **Agency/Channel**. They are seeded from `packages/db/src/seed-data.ts`, but only into a database with no teams at all, so teams edited or deleted in the database stay that way.
 
 > **Write descriptions that separate teams.** The agent can only route as well as the descriptions tell teams apart. The risky cases are on the borders, such as "upgrade my plan" (Sales or Finance?) and "this feature is broken" (Support or Product?). Say clearly what belongs where.
 
@@ -95,6 +95,7 @@ Run with `-w @ac-1/db`:
 | `npm run db:seed`    | Create any missing teams                                  |
 | `npm run db:studio`  | Open Prisma Studio to browse and edit data                |
 | `npm run test:db`    | Run database tests against `DATABASE_URL_TEST`            |
+| `npm run import:hygraph` | One-time copy of Hygraph content (needs `HYGRAPH_ENDPOINT`, `HYGRAPH_TOKEN`) |
 
 ## Scripts
 

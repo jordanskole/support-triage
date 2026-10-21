@@ -19,12 +19,12 @@
     "typecheck": "prisma generate && tsc --noEmit",
     "test": "vitest run --coverage --passWithNoTests --exclude 'src/**/*.db.test.ts'",
     "test:watch": "vitest --exclude 'src/**/*.db.test.ts'",
-    "test:db": "node scripts/with-test-db.mjs prisma migrate deploy && node scripts/with-test-db.mjs vitest run .db.test.ts",
+    "test:db": "prisma generate && node scripts/with-test-db.mjs prisma migrate deploy && node scripts/with-test-db.mjs vitest run .db.test.ts",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:seed": "prisma db seed",
+    "db:seed": "npm run build && prisma db seed",
     "db:studio": "prisma studio",
-    "import:hygraph": "node dist/import-hygraph.js"
+    "import:hygraph": "npm run build && node dist/import-hygraph.js"
   },
   "dependencies": {
     "@prisma/adapter-pg": "~7.10.1",
