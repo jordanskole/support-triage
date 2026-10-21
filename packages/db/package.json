@@ -23,7 +23,8 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "import:hygraph": "node dist/import-hygraph.js"
   },
   "dependencies": {
     "@prisma/adapter-pg": "~7.10.1",
