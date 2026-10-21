@@ -1,0 +1,12 @@
+node_modules
+.env
+.output
+.vinxi
+.tanstack
+dist
+.turbo
+*.local
+.DS_Store
+coverage
+packages/db/src/generated
+.superpowers
