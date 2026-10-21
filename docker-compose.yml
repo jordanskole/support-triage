@@ -17,5 +17,27 @@ services:
       timeout: 5s
       retries: 15
 
+  migrate:
+    build:
+      context: .
+      target: migrate
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ac1}:${POSTGRES_PASSWORD:-ac1}@postgres:5432/${POSTGRES_DB:-ac1}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      target: web
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ac1}:${POSTGRES_PASSWORD:-ac1}@postgres:5432/${POSTGRES_DB:-ac1}
+    ports:
+      - "3000:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
 volumes:
   pgdata:
