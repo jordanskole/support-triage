@@ -1,0 +1,37 @@
+{
+  "name": "@ac-1/db",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "prisma generate && tsc",
+    "dev": "tsc --watch --preserveWatchOutput",
+    "typecheck": "prisma generate && tsc --noEmit",
+    "test": "vitest run --coverage --passWithNoTests --exclude 'src/**/*.db.test.ts'",
+    "test:watch": "vitest --exclude 'src/**/*.db.test.ts'",
+    "test:db": "node scripts/with-test-db.mjs prisma migrate deploy && node scripts/with-test-db.mjs vitest run .db.test.ts",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "~7.10.1",
+    "@prisma/client": "~7.10.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "prisma": "~7.10.1",
+    "typescript": "^7.0.2"
+  }
+}

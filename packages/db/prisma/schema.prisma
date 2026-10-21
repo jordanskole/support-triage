@@ -1,0 +1,65 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Team {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  name        String   @unique
+  /// When a request belongs to this team. The triage agent routes on this text.
+  description String   @db.Text
+
+  suggestedTeams SuggestedTeam[] @relation("SuggestedTeam")
+  correctedTeams SuggestedTeam[] @relation("CorrectedTeam")
+}
+
+/// A person who submitted a request. Called `Customer` in Hygraph.
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  email     String   @unique
+  firstName String?
+  lastName  String?
+
+  formSubmissions FormSubmission[]
+}
+
+model FormSubmission {
+  id             String   @id @default(cuid())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  submittedValue String   @db.Text
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  suggestedTeam SuggestedTeam?
+}
+
+/// The triage agent's pick for a submission, plus any human correction.
+model SuggestedTeam {
+  id                 String   @id @default(cuid())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  reasoning          String   @db.Text
+  hitlVerified       Boolean  @default(false)
+  correctedReasoning String?  @db.Text
+
+  formSubmissionId String         @unique
+  formSubmission   FormSubmission @relation(fields: [formSubmissionId], references: [id], onDelete: Cascade)
+
+  teamId String
+  team   Team   @relation("SuggestedTeam", fields: [teamId], references: [id], onDelete: Restrict)
+
+  correctedTeamId String?
+  correctedTeam   Team?   @relation("CorrectedTeam", fields: [correctedTeamId], references: [id], onDelete: Restrict)
+}
