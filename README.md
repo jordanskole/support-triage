@@ -1,42 +1,47 @@
 # ac-1
 
-A support request form with an AI triage agent behind it.
+A support request form with an AI triage agent behind it, and a board where teams work the requests.
 
 Users get one question: **"How can I help?"** They answer in their own words. They don't pick a category or fill in structured fields. An agent reads the request and routes it to the right internal team.
 
 ## How it works
 
 ```
-┌──────────────┐     ┌──────────────────┐     ┌────────────────┐
-│  apps/web    │     │  Triage agent    │     │  Internal team │
-│  textarea:   │ ──▶ │  packages/triage │ ──▶ │  Support,      │
-│ "How can I   │     │  Voyage + Claude │     │  Sales, ...    │
-│   help?"     │     │                  │     │                │
-└──────────────┘     └──────────────────┘     └────────────────┘
-                              ▲
-                              │ teams, guidance, similar past decisions
-                     ┌──────────────────┐
-                     │ Postgres+pgvector│
+┌──────────────┐     ┌──────────────────┐     ┌────────────────────┐
+│  apps/web    │     │  Triage agent    │     │  apps/admin board  │
+│  textarea:   │ ──▶ │  packages/triage │ ──▶ │  a column per team │
+│ "How can I   │     │  Voyage + Claude │     │  transfer / answer │
+│   help?"     │     │                  │     │                    │
+└──────────────┘     └──────────────────┘     └────────────────────┘
+                              ▲                          │
+                              │ teams, guidance,         │ answers and
+                              │ similar answered requests│ transfer reasons
+                     ┌──────────────────┐                │
+                     │ Postgres+pgvector│ ◀──────────────┘
                      │    packages/db   │
                      └──────────────────┘
 ```
 
 1. A user submits free text. For now that's the `npm run triage` CLI; the form in `apps/web` comes later.
 2. The request is saved as a `FormSubmission` and embedded with Voyage AI (`voyage-4`, 1024 numbers).
-3. pgvector finds the 5 most similar past requests that a human has verified, with the team each one went to (the corrected team, if a human changed it).
-4. Claude Haiku (`claude-haiku-5-5`) reads the team descriptions, the routing guidance, and those past decisions, and picks a team with its reasoning. The pick is saved as an unverified `SuggestedTeam`.
-5. Verifying or correcting suggestions (in Prisma Studio for now) adds them to the examples later requests learn from.
+3. pgvector finds the 5 most similar past requests that a team has **answered**, with the team that answered each one, its answer, and any transfers along the way.
+4. Claude Haiku (`claude-haiku-5-5`) reads the team descriptions, the routing guidance, and those past requests, and picks a team with its reasoning. The pick is saved as a `SuggestedTeam`, and **that team now holds the request**: there is no approval step.
+5. On the board (`apps/admin`), the holding team either **transfers** the request to the team it thinks is right, with a reason, or **answers** it. A request can be transferred any number of times. Answering closes it, and the team that answered is the correct team.
+6. Answered requests become the examples later requests learn from. The goal is for the agent to eventually answer requests itself and only route the ones it's unsure about.
+
+The first 15 requests were labelled by hand before the board existed. They are stored as **backfilled** answers: the reviewer's routing note stands in for an answer, the board shows a "Backfilled" badge, and the agent's prompt calls them routing notes rather than answers sent to a customer.
 
 ## Data model
 
-The schema lives in `packages/db/prisma/schema.prisma`. The agent doesn't hard-code its routing rules: it reads team descriptions and its routing guidance (the `routingGuidance` setting) from the database, so routing changes are data edits, not code changes. Until the admin UI exists, edit them in Prisma Studio (`npm run db:studio -w @ac-1/db`).
+The schema lives in `packages/db/prisma/schema.prisma`. The agent doesn't hard-code its routing rules: it reads team descriptions and its routing guidance (the `routingGuidance` setting) from the database, so routing changes are data edits, not code changes. The board doesn't edit them yet, so use Prisma Studio (`npm run db:studio -w @ac-1/db`).
 
 | Model            | Key fields                                                          | Purpose                                                          |
 | ---------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | `Team`           | `name` (unique), `description`                                      | A team requests can go to. The agent routes based on `description` |
 | `User`           | `email` (unique), `firstName`, `lastName`                           | The person who submitted a request                               |
-| `FormSubmission` | `submittedValue` (max 5,000 characters), `user`, `embedding`, `embeddingModel` | One free-text request and its vector. Only vectors from the same model are compared |
-| `SuggestedTeam`  | `formSubmission` (one per submission), `team`, `reasoning`, `hitlVerified`, `correctedTeam`, `correctedReasoning` | The agent's pick, plus a human's check or correction |
+| `FormSubmission` | `submittedValue` (max 5,000 characters), `user`, `embedding`, `embeddingModel`, `holderTeam`, `answer`, `answeredAt`, `answerBackfilled` | One free-text request and its vector. `holderTeam` is the team that has it now (null = unrouted); an answer closes it. Only vectors from the same model are compared |
+| `SuggestedTeam`  | `formSubmission` (one per submission), `team`, `reasoning`                           | The automatic pick: the first team the request was assigned to, and why |
+| `Transfer`       | `formSubmission`, `fromTeam` (null if it was unrouted), `toTeam`, `reason` (max 5,000) | One move from the holding team to another                        |
 | `Setting`        | `key`, `value`                                                      | Text the app reads at runtime. `routingGuidance` tells the agent how to weigh past decisions against descriptions |
 
 Current teams: **Support**, **Sales**, **Finance**, **Product**, **Agency/Channel**. They are seeded from `packages/db/src/seed-data.ts`, but only into a database with no teams at all, so teams edited or deleted in the database stay that way.
@@ -50,6 +55,7 @@ This is an npm workspaces monorepo, orchestrated with [Turborepo](https://turbo.
 ```
 apps/
   web/            # User-facing form: TanStack Start (React 19 + Vite), SPA mode
+  admin/          # Team board: TanStack Start (SSR + server functions), Chakra UI v3
 packages/
   db/             # Prisma schema, migrations, seed, shared client (@ac-1/db)
   triage/         # Triage pipeline: Voyage embeddings, pgvector retrieval, Claude (@ac-1/triage)
@@ -67,7 +73,7 @@ cp .env.example .env   # the defaults work as-is
 docker compose up --build
 ```
 
-This starts Postgres, applies migrations, seeds the teams, and serves the app at http://localhost:3000.
+This starts Postgres, applies migrations, seeds the teams, and serves the app at http://localhost:3000 and the team board at http://localhost:3001.
 
 ### Hot-reload development
 
@@ -79,6 +85,8 @@ docker compose up -d postgres
 npm run db:deploy -w @ac-1/db && npm run db:seed -w @ac-1/db
 npm run dev
 ```
+
+`npm run dev` serves the form at http://localhost:3000 and the team board at http://localhost:3001.
 
 ### Environment variables
 
@@ -109,8 +117,8 @@ Run from the repo root. They need `ANTHROPIC_API_KEY` and `VOYAGE_API_KEY` in `.
 | Command | What it does | Cost |
 | ------- | ------------ | ---- |
 | `npm run triage -- "<request>" --email <email>` | Route one request and save it with its suggestion | ~1 Voyage + 1 Claude call |
-| `npm run triage:eval` | Leave-one-out score over every verified submission. Writes nothing | 1 Claude call per verified row |
-| `npm run triage:backfill -- [--labels <file>]` | Embed rows with no embedding (or one from an older model); with `--labels`, save human labels as verified suggestions | 1 Voyage call |
+| `npm run triage:eval` | Leave-one-out score over every answered submission. Writes nothing | 1 Claude call per answered row |
+| `npm run triage:backfill -- [--labels <file>]` | Embed rows with no embedding (or one from an older model); with `--labels`, save human labels as backfilled answers | 1 Voyage call |
 
 Database tests for the pipeline: `npm run test:db -w @ac-1/triage`.
 
@@ -134,11 +142,15 @@ Run these from the repo root. Turborepo runs each task across all workspaces.
 - [ ] Run the triage agent server-side behind the form
 - [ ] Decide how a routed request reaches its team (email, Slack, ticketing system, etc.)
 - [ ] Hosted deployment of `apps/web`
-- [ ] Admin UI for teams and triage review (replaces Prisma Studio)
+- [x] Team board in `apps/admin`: transfer requests between teams with a reason, answer them
+- [ ] Edit teams, descriptions and the routing guidance in `apps/admin` (replaces Prisma Studio)
+- [ ] People: logins, team membership, and who transferred or answered a request
+- [ ] Send answers to the submitter by email
+- [ ] Let the agent draft or send answers itself, and route only when unsure
 - [x] Migrate from Hygraph to Prisma + Postgres
 
 ## Open questions
 
 - **Where does the agent run?** `apps/web` is set up in SPA mode, so it has no server at runtime. The agent needs secrets (database URL, LLM API key), so it has to run server-side. Options are turning off SPA mode and using TanStack Start server functions, or running the agent as a separate API.
-- **What happens when the agent can't decide?** Options include a fallback team, a human review queue, or a confidence threshold.
+- **What happens when the agent can't decide?** For now it still picks a team, and the board's transfer loop corrects it. A confidence threshold could later send unsure requests to a triage column instead.
 - **What does the user see after submitting?** For example, whether they are told which team picked up their request.
