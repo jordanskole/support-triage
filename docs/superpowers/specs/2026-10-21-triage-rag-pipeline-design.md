@@ -33,6 +33,12 @@ Retrieval matters because the hard cases sit on team boundaries: upgrades betwee
 ## Goals
 
 1. **Schema:** `FormSubmission` gets a nullable 1024-dimension vector column and a nullable `embeddingModel` string recording which model produced the vector. A migration enables the `vector` extension. Prisma can't query vectors natively, so the column is `Unsupported("vector(1024)")`, and similarity search is one raw SQL query that lives in `@ac-1/db`.
+   - **Length cap (decided with the owner):** `submittedValue` is limited to **5,000 characters**.
+     - The database enforces it with `@db.VarChar(5000)`, replacing `@db.Text`.
+     - `triage(...)` also checks it before any API call. Text over the cap is **rejected** with a clear message and nothing is saved. It is never truncated.
+     - The limit is one exported constant shared by the check and the docs. The owner expects to lower it later. Lowering it means changing the constant **and** adding a migration for the column.
+     - Today's longest submission is 156 characters, so the migration can't fail on existing rows.
+     - This is not related to the 1024 vector size. Embeddings have 1024 numbers whatever the length of the text. Voyage's own input limit is far above 5,000 characters, and the builder confirms it at build time.
 2. **Postgres image:** change `postgres:18-alpine` to a pgvector build of Postgres 18 (for example `pgvector/pgvector:pg18`; the builder verifies the tag). This applies in compose and wherever the test database comes from. `docker compose up` on a fresh clone must still work with no manual steps.
    - **The local data must survive the image swap (Claude's call).** The 15 submissions and 1 user exist **only** in the local `pgdata` volume. The Hygraph import has been deleted, and the Hygraph project is being shut down. The pgvector images are Debian/glibc and the current image is Alpine/musl, so reusing the data directory in place risks collation mismatches on text indexes.
    - Procedure:
