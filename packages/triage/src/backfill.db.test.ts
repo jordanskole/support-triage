@@ -94,6 +94,27 @@ describe("applyLabels", () => {
     });
   });
 
+  it("leaves a submission a team already holds or answered alone", async () => {
+    const { finance, a } = await seed();
+    const support = await db.team.create({ data: { name: "Support", description: "help" } });
+    await db.transfer.create({
+      data: { formSubmissionId: a.id, fromTeamId: null, toTeamId: support.id, reason: "by hand" },
+    });
+    await db.formSubmission.update({
+      where: { id: a.id },
+      data: { holderTeamId: support.id, answer: "Real reply.", answeredAt: new Date() },
+    });
+
+    expect(
+      await applyLabels(db, [{ submissionId: a.id, team: finance.name, reasoning: "label" }]),
+    ).toEqual({ created: 0, skipped: 1 });
+    expect(await db.formSubmission.findUniqueOrThrow({ where: { id: a.id } })).toMatchObject({
+      holderTeamId: support.id,
+      answer: "Real reply.",
+      answerBackfilled: false,
+    });
+  });
+
   it.each([
     ["an unknown team", (ids: { a: string }) => ({ submissionId: ids.a, team: "Legal" })],
     ["an unknown submission", () => ({ submissionId: "nope", team: "Finance" })],

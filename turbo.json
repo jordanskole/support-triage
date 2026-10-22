@@ -36,6 +36,7 @@
       ],
       "inputs": [
         "src/**",
+        "app/**",
         "vitest.config.ts",
         "tsconfig.json",
         "package.json"

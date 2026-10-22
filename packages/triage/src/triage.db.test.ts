@@ -111,6 +111,24 @@ describe("triage", () => {
     ).toMatchObject({ holderTeamId: finance.id, answer: null, answeredAt: null });
   });
 
+  it("never shows the board an unrouted submission while it is being classified", async () => {
+    await seed();
+    let unroutedDuringClassify = -1;
+    const classifier: Classifier = {
+      async classify() {
+        unroutedDuringClassify = await db.formSubmission.count({ where: { holderTeamId: null } });
+        return { team: "Finance", reasoning: "billing", usage: { inputTokens: 1, outputTokens: 1 } };
+      },
+    };
+
+    await triage(db, { embedder: fakeEmbedder().embedder, classifier }, {
+      text: "refund please",
+      email: "ada@example.com",
+    });
+
+    expect(unroutedDuringClassify).toBe(0);
+  });
+
   it("passes DB teams and the answered neighbour to the classifier", async () => {
     await seed();
     const { embedder } = fakeEmbedder();

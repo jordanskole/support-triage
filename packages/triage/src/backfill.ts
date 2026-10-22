@@ -28,7 +28,8 @@ export async function backfillEmbeddings(
 /**
  * Saves each label as a backfilled answer: the label's team picked, holding and
  * answering it, with the label's reasoning as the answer. Submissions that
- * already have a suggestion are left alone. Checks every label before writing any.
+ * already have a suggestion, a holder or an answer are left alone. Checks every
+ * label before writing any.
  */
 export async function applyLabels(
   db: PrismaClient,
@@ -37,7 +38,12 @@ export async function applyLabels(
   const teams = new Map((await db.team.findMany()).map((t) => [t.name, t.id]));
   const submissions = await db.formSubmission.findMany({
     where: { id: { in: labels.map((l) => l.submissionId) } },
-    select: { id: true, suggestedTeam: { select: { id: true } } },
+    select: {
+      id: true,
+      holderTeamId: true,
+      answeredAt: true,
+      suggestedTeam: { select: { id: true } },
+    },
   });
   const byId = new Map(submissions.map((s) => [s.id, s]));
 
@@ -47,7 +53,11 @@ export async function applyLabels(
   ]);
   if (problems.length > 0) throw new Error(`Labels not applied: ${problems.join("; ")}`);
 
-  const toCreate = labels.filter((l) => !byId.get(l.submissionId)!.suggestedTeam);
+  // Never relabel a submission that has a pick, a team holding it, or an answer.
+  const toCreate = labels.filter((l) => {
+    const s = byId.get(l.submissionId)!;
+    return !s.suggestedTeam && s.holderTeamId === null && s.answeredAt === null;
+  });
   const answeredAt = new Date();
   await db.$transaction(
     toCreate.flatMap((l) => {

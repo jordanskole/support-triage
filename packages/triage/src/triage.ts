@@ -59,29 +59,16 @@ export async function triage(
   const [vector] = await deps.embedder.embed([text]);
   if (!vector) throw new Error("The embedder returned no vector.");
 
-  const save = () =>
-    db.$transaction(async (tx) => {
-      const user = await tx.user.upsert({ where: { email }, create: { email }, update: {} });
-      const row = await tx.formSubmission.create({
-        data: { submittedValue: text, userId: user.id },
-      });
-      await setEmbedding(tx, row.id, vector, deps.embedder.model);
-      return row;
-    });
-  // Prisma's upsert is SELECT-then-INSERT, so two first requests from one email
-  // can both try to create the user. The loser rolls back; by the retry the
-  // winner's user is committed and the upsert finds it.
-  const submission = await save().catch((error: unknown) => {
-    if (isUniqueViolation(error)) return save();
-    throw error;
-  });
-
+  // Route before saving, so the board never sees the submission without a
+  // team while the classifier is thinking (it would show up as unrouted, and a
+  // drag from there could be overwritten by the pick).
+  let routed: { teamId: string; team: string; reasoning: string; neighbours: Neighbour[] } | undefined;
+  let routingError: unknown;
   try {
     const neighbours = await findNeighbours(db, {
       vector,
       model: deps.embedder.model,
       k: NEIGHBOUR_COUNT,
-      excludeSubmissionId: submission.id,
     });
     const teams = await db.team.findMany({
       select: { id: true, name: true, description: true },
@@ -94,19 +81,40 @@ export async function triage(
       teams,
       neighbours,
     });
-
     const teamId = teams.find((t) => t.name === team)?.id;
     if (!teamId) throw new Error(`Unknown team "${team}"`);
-    // The pick is an assignment: the team holds the submission from now on.
-    await db.$transaction([
-      db.suggestedTeam.create({ data: { formSubmissionId: submission.id, teamId, reasoning } }),
-      db.formSubmission.update({ where: { id: submission.id }, data: { holderTeamId: teamId } }),
-    ]);
-
-    return { submissionId: submission.id, team, reasoning, neighbours };
+    routed = { teamId, team, reasoning, neighbours };
   } catch (error) {
-    throw new TriageFailedError(submission.id, error);
+    routingError = error;
   }
+
+  const save = () =>
+    db.$transaction(async (tx) => {
+      const user = await tx.user.upsert({ where: { email }, create: { email }, update: {} });
+      const row = await tx.formSubmission.create({
+        // The pick is an assignment: the team holds the submission from the start.
+        data: { submittedValue: text, userId: user.id, holderTeamId: routed?.teamId ?? null },
+      });
+      await setEmbedding(tx, row.id, vector, deps.embedder.model);
+      if (routed) {
+        await tx.suggestedTeam.create({
+          data: { formSubmissionId: row.id, teamId: routed.teamId, reasoning: routed.reasoning },
+        });
+      }
+      return row;
+    });
+  // Prisma's upsert is SELECT-then-INSERT, so two first requests from one email
+  // can both try to create the user. The loser rolls back; by the retry the
+  // winner's user is committed and the upsert finds it.
+  const submission = await save().catch((error: unknown) => {
+    if (isUniqueViolation(error)) return save();
+    throw error;
+  });
+
+  // Routing failed: the request is still saved, unrouted, for a team to pick up.
+  if (!routed) throw new TriageFailedError(submission.id, routingError);
+  const { team, reasoning, neighbours } = routed;
+  return { submissionId: submission.id, team, reasoning, neighbours };
 }
 
 function isUniqueViolation(error: unknown): boolean {
