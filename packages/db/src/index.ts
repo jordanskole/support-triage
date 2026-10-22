@@ -10,8 +10,8 @@ export {
   setEmbedding,
   submissionsNeedingEmbedding,
 } from "./embeddings.js";
-export type { Neighbour } from "./embeddings.js";
-export { MAX_SUBMISSION_LENGTH } from "./limits.js";
+export type { Neighbour, NeighbourTransfer } from "./embeddings.js";
+export { MAX_NOTE_LENGTH, MAX_SUBMISSION_LENGTH } from "./limits.js";
 export {
   DEFAULT_ROUTING_GUIDANCE,
   getRoutingGuidance,
@@ -23,5 +23,6 @@ export type {
   Setting,
   SuggestedTeam,
   Team,
+  Transfer,
   User,
 } from "./generated/prisma/client.js";

@@ -9,6 +9,6 @@ export function testDb(): PrismaClient {
 
 export async function resetDb(db: PrismaClient): Promise<void> {
   await db.$executeRawUnsafe(
-    'TRUNCATE "SuggestedTeam", "FormSubmission", "User", "Team", "Setting" CASCADE',
+    'TRUNCATE "Transfer", "SuggestedTeam", "FormSubmission", "User", "Team", "Setting" CASCADE',
   );
 }

@@ -17,8 +17,10 @@ model Team {
   /// When a request belongs to this team. The triage agent routes on this text.
   description String   @db.Text
 
-  suggestedTeams SuggestedTeam[] @relation("SuggestedTeam")
-  correctedTeams SuggestedTeam[] @relation("CorrectedTeam")
+  suggestedTeams  SuggestedTeam[]  @relation("SuggestedTeam")
+  heldSubmissions FormSubmission[] @relation("Holder")
+  transfersFrom   Transfer[]       @relation("TransferFrom")
+  transfersTo     Transfer[]       @relation("TransferTo")
 }
 
 /// A person who submitted a request. Called `Customer` in Hygraph.
@@ -34,11 +36,11 @@ model User {
 }
 
 model FormSubmission {
-  id             String   @id @default(cuid())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id             String                       @id @default(cuid())
+  createdAt      DateTime                     @default(now())
+  updatedAt      DateTime                     @updatedAt
   /// Capped at MAX_SUBMISSION_LENGTH (src/limits.ts); change both together.
-  submittedValue String   @db.VarChar(5000)
+  submittedValue String                       @db.VarChar(5000)
   /// Written and read with raw SQL (src/embeddings.ts); Prisma can't query vectors.
   embedding      Unsupported("vector(1024)")?
   /// The model that produced `embedding`. Only vectors from the same model are compared.
@@ -47,26 +49,55 @@ model FormSubmission {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
 
+  /// The team that has the submission now: the last transfer's to-team, or the
+  /// suggestion's team if it was never moved. Null means unrouted. Kept in step
+  /// with the transfers by src/board.ts; it is what transfers and answers check.
+  holderTeamId String?
+  holderTeam   Team?   @relation("Holder", fields: [holderTeamId], references: [id], onDelete: Restrict)
+
+  /// The holder's reply to the submitter. Answering closes the submission, and
+  /// the holder at that moment is the correct team. Capped at MAX_NOTE_LENGTH.
+  answer           String?   @db.VarChar(5000)
+  answeredAt       DateTime?
+  /// True for answers made from a reviewer's routing label, not sent to anyone.
+  answerBackfilled Boolean   @default(false)
+
   suggestedTeam SuggestedTeam?
+  transfers     Transfer[]
 }
 
-/// The triage agent's pick for a submission, plus any human correction.
+/// The automatic pick for a submission: the team it was first assigned to, and why.
 model SuggestedTeam {
-  id                 String   @id @default(cuid())
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  reasoning          String   @db.Text
-  hitlVerified       Boolean  @default(false)
-  correctedReasoning String?  @db.Text
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  reasoning String   @db.Text
 
   formSubmissionId String         @unique
   formSubmission   FormSubmission @relation(fields: [formSubmissionId], references: [id], onDelete: Cascade)
 
   teamId String
   team   Team   @relation("SuggestedTeam", fields: [teamId], references: [id], onDelete: Restrict)
+}
 
-  correctedTeamId String?
-  correctedTeam   Team?   @relation("CorrectedTeam", fields: [correctedTeamId], references: [id], onDelete: Restrict)
+/// One move of a submission from the team holding it to another team.
+model Transfer {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  /// Why it belongs to the to-team. Capped at MAX_NOTE_LENGTH.
+  reason    String   @db.VarChar(5000)
+
+  formSubmissionId String
+  formSubmission   FormSubmission @relation(fields: [formSubmissionId], references: [id], onDelete: Cascade)
+
+  /// Null when the submission was unrouted.
+  fromTeamId String?
+  fromTeam   Team?   @relation("TransferFrom", fields: [fromTeamId], references: [id], onDelete: Restrict)
+
+  toTeamId String
+  toTeam   Team   @relation("TransferTo", fields: [toTeamId], references: [id], onDelete: Restrict)
+
+  @@index([formSubmissionId, createdAt])
 }
 
 /// Editable text the app reads at runtime, e.g. the triage agent's routing guidance.

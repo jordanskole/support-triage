@@ -40,12 +40,12 @@ async function submission(
   opts: {
     userId: string;
     teamId?: string;
-    verified?: boolean;
+    answered?: boolean;
+    backfilled?: boolean;
+    answer?: string;
+    transfers?: { fromTeamId: string | null; toTeamId: string; reason: string }[];
     vector?: number[];
     model?: string;
-    reasoning?: string;
-    correctedTeamId?: string;
-    correctedReasoning?: string;
   },
 ) {
   const row = await db.formSubmission.create({
@@ -54,13 +54,24 @@ async function submission(
   if (opts.vector) await setEmbedding(db, row.id, opts.vector, opts.model ?? MODEL);
   if (opts.teamId) {
     await db.suggestedTeam.create({
+      data: { formSubmissionId: row.id, teamId: opts.teamId, reasoning: `auto ${text}` },
+    });
+    const transfers = opts.transfers ?? [];
+    for (const [i, t] of transfers.entries()) {
+      await db.transfer.create({
+        data: { formSubmissionId: row.id, ...t, createdAt: new Date(Date.UTC(2026, 0, 1, 0, i)) },
+      });
+    }
+    const answered = opts.answered ?? true;
+    await db.formSubmission.update({
+      where: { id: row.id },
       data: {
-        formSubmissionId: row.id,
-        teamId: opts.teamId,
-        reasoning: opts.reasoning ?? `why ${text}`,
-        hitlVerified: opts.verified ?? true,
-        correctedTeamId: opts.correctedTeamId,
-        correctedReasoning: opts.correctedReasoning,
+        holderTeamId: transfers.at(-1)?.toTeamId ?? opts.teamId,
+        ...(answered && {
+          answer: opts.answer ?? `answer ${text}`,
+          answeredAt: new Date(),
+          answerBackfilled: opts.backfilled ?? false,
+        }),
       },
     });
   }
@@ -68,7 +79,7 @@ async function submission(
 }
 
 describe("findNeighbours", () => {
-  it("returns verified neighbours nearest first", async () => {
+  it("returns answered neighbours nearest first", async () => {
     const { support, user } = await fixtures();
     const first = await submission("first", { userId: user.id, teamId: support.id, vector: unit(0) });
     const second = await submission("second", {
@@ -81,33 +92,65 @@ describe("findNeighbours", () => {
     const result = await findNeighbours(db, { vector: unit(0), model: MODEL, k: 2 });
 
     expect(result.map((n) => n.submissionId)).toEqual([first.id, second.id]);
-    expect(result[0]).toMatchObject({ text: "first", team: "Support", reasoning: "why first" });
+    expect(result[0]).toMatchObject({
+      text: "first",
+      team: "Support",
+      answer: "answer first",
+      backfilled: false,
+      transfers: [],
+    });
     expect(result[0]!.similarity).toBeCloseTo(1);
   });
 
-  it("uses correctedTeam and correctedReasoning when set", async () => {
+  it("uses the answering team and answer, with transfers oldest first", async () => {
     const { support, sales, user } = await fixtures();
     await submission("upgrade", {
       userId: user.id,
       teamId: support.id,
       vector: unit(0),
-      correctedTeamId: sales.id,
-      correctedReasoning: "it's an upgrade",
+      answer: "Upgraded your plan.",
+      transfers: [
+        { fromTeamId: support.id, toTeamId: sales.id, reason: "it's an upgrade" },
+        { fromTeamId: sales.id, toTeamId: support.id, reason: "actually a how-to" },
+        { fromTeamId: support.id, toTeamId: sales.id, reason: "no, pricing" },
+      ],
     });
 
     const [n] = await findNeighbours(db, { vector: unit(0), model: MODEL, k: 5 });
 
-    expect(n).toMatchObject({ team: "Sales", reasoning: "it's an upgrade" });
+    expect(n).toMatchObject({ team: "Sales", answer: "Upgraded your plan." });
+    expect(n!.transfers).toEqual([
+      { from: "Support", to: "Sales", reason: "it's an upgrade" },
+      { from: "Sales", to: "Support", reason: "actually a how-to" },
+      { from: "Support", to: "Sales", reason: "no, pricing" },
+    ]);
   });
 
-  it("skips unverified, unembedded, other-model and excluded rows", async () => {
+  it("marks backfilled answers", async () => {
     const { support, user } = await fixtures();
-    await submission("unverified", {
+    await submission("labelled", {
       userId: user.id,
       teamId: support.id,
       vector: unit(0),
-      verified: false,
+      backfilled: true,
     });
+
+    const [n] = await findNeighbours(db, { vector: unit(0), model: MODEL, k: 5 });
+
+    expect(n).toMatchObject({ backfilled: true });
+  });
+
+  it("skips open, unembedded, other-model and excluded rows", async () => {
+    const { support, sales, user } = await fixtures();
+    await submission("open", { userId: user.id, teamId: support.id, vector: unit(0), answered: false });
+    await submission("open after a transfer", {
+      userId: user.id,
+      teamId: support.id,
+      vector: unit(0),
+      answered: false,
+      transfers: [{ fromTeamId: support.id, toTeamId: sales.id, reason: "sales" }],
+    });
+    await submission("unrouted", { userId: user.id, vector: unit(0) });
     await submission("unembedded", { userId: user.id, teamId: support.id });
     await submission("other model", {
       userId: user.id,

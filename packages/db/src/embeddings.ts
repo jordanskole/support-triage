@@ -6,14 +6,20 @@ type RawDb = Pick<PrismaClient, "$executeRaw" | "$queryRaw">;
 /** Length of `FormSubmission.embedding`; matches `vector(1024)` in schema.prisma. */
 export const EMBEDDING_DIMENSIONS = 1024;
 
-/** A past, human-verified submission that is close to the one being triaged. */
+/** A past, answered submission that is close to the one being triaged. */
+/** One move in a past submission's trail; `from` is null if it was unrouted. */
+export type NeighbourTransfer = { from: string | null; to: string; reason: string };
+
 export type Neighbour = {
   submissionId: string;
   text: string;
-  /** `correctedTeam` if a human corrected the pick, otherwise `team`. */
+  /** The team that answered it, which is the correct team. */
   team: string;
-  /** `correctedReasoning` if set, otherwise `reasoning`. */
-  reasoning: string;
+  answer: string;
+  /** The answer is a reviewer's routing note, not a reply sent to the customer. */
+  backfilled: boolean;
+  /** Oldest first; empty if it never moved. */
+  transfers: NeighbourTransfer[];
   /** Cosine similarity to the query, 1 = same direction. */
   similarity: number;
 };
@@ -54,7 +60,7 @@ export async function getEmbedding(
 }
 
 /**
- * The `k` verified submissions closest to `vector`, nearest first. Only rows
+ * The `k` answered submissions closest to `vector`, nearest first. Only rows
  * embedded with the same `model` are compared.
  */
 export async function findNeighbours(
@@ -67,14 +73,23 @@ export async function findNeighbours(
     SELECT
       fs."id" AS "submissionId",
       fs."submittedValue" AS "text",
-      COALESCE(ct."name", t."name") AS "team",
-      COALESCE(st."correctedReasoning", st."reasoning") AS "reasoning",
+      t."name" AS "team",
+      fs."answer" AS "answer",
+      fs."answerBackfilled" AS "backfilled",
+      COALESCE(
+        (SELECT json_agg(
+                  json_build_object('from', ft."name", 'to', tt."name", 'reason', tr."reason")
+                  ORDER BY tr."createdAt")
+           FROM "Transfer" tr
+           LEFT JOIN "Team" ft ON ft."id" = tr."fromTeamId"
+           JOIN "Team" tt ON tt."id" = tr."toTeamId"
+          WHERE tr."formSubmissionId" = fs."id"),
+        '[]'::json
+      ) AS "transfers",
       1 - (fs."embedding" <=> ${literal}::vector) AS "similarity"
     FROM "FormSubmission" fs
-    JOIN "SuggestedTeam" st ON st."formSubmissionId" = fs."id"
-    JOIN "Team" t ON t."id" = st."teamId"
-    LEFT JOIN "Team" ct ON ct."id" = st."correctedTeamId"
-    WHERE st."hitlVerified"
+    JOIN "Team" t ON t."id" = fs."holderTeamId"
+    WHERE fs."answeredAt" IS NOT NULL
       AND fs."embedding" IS NOT NULL
       AND fs."embeddingModel" = ${opts.model}
       AND fs."id" <> ${exclude}

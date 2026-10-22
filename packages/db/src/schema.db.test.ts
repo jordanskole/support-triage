@@ -55,8 +55,19 @@ describe("schema constraints", () => {
     expect(await db.formSubmission.count()).toBe(1);
   });
 
-  it("hitlVerified defaults to false", async () => {
-    const { suggestion } = await submissionWithSuggestion();
-    expect(suggestion.hitlVerified).toBe(false);
+  it("an answer without a holder, or without a time, is rejected by the database", async () => {
+    const { team, submission } = await submissionWithSuggestion();
+    await expect(
+      db.formSubmission.update({
+        where: { id: submission.id },
+        data: { answer: "hi", answeredAt: new Date() },
+      }),
+    ).rejects.toThrow(/answer_holder_check/);
+    await expect(
+      db.formSubmission.update({
+        where: { id: submission.id },
+        data: { holderTeamId: team.id, answer: "hi" },
+      }),
+    ).rejects.toThrow(/answer_check/);
   });
 });
