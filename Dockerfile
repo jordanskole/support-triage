@@ -5,6 +5,7 @@ WORKDIR /app
 RUN npm install -g npm@12.0.2
 
 COPY package.json package-lock.json ./
+COPY apps/admin/package.json apps/admin/
 COPY apps/web/package.json apps/web/
 COPY packages/db/package.json packages/db/
 COPY packages/schema/package.json packages/schema/
@@ -24,3 +25,8 @@ FROM build AS web
 WORKDIR /app/apps/web
 EXPOSE 3000
 CMD ["npx", "vite", "preview", "--host", "0.0.0.0", "--port", "3000"]
+
+FROM build AS admin
+WORKDIR /app/apps/admin
+EXPOSE 3001
+CMD ["npx", "vite", "preview", "--host", "0.0.0.0", "--port", "3001"]

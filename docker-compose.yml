@@ -39,5 +39,17 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  admin:
+    build:
+      context: .
+      target: admin
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ac1}:${POSTGRES_PASSWORD:-ac1}@postgres:5432/${POSTGRES_DB:-ac1}
+    ports:
+      - "3001:3001"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
 volumes:
   pgvector-data:
