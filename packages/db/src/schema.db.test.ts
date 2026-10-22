@@ -46,6 +46,15 @@ describe("schema constraints", () => {
     });
   });
 
+  it("submittedValue over 5000 characters is rejected by the database", async () => {
+    const user = await db.user.create({ data: { email: "ada@example.com" } });
+    await expect(
+      db.formSubmission.create({ data: { submittedValue: "a".repeat(5001), userId: user.id } }),
+    ).rejects.toThrow();
+    await db.formSubmission.create({ data: { submittedValue: "a".repeat(5000), userId: user.id } });
+    expect(await db.formSubmission.count()).toBe(1);
+  });
+
   it("hitlVerified defaults to false", async () => {
     const { suggestion } = await submissionWithSuggestion();
     expect(suggestion.hitlVerified).toBe(false);

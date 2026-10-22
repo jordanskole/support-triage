@@ -37,7 +37,12 @@ model FormSubmission {
   id             String   @id @default(cuid())
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-  submittedValue String   @db.Text
+  /// Capped at MAX_SUBMISSION_LENGTH (src/limits.ts); change both together.
+  submittedValue String   @db.VarChar(5000)
+  /// Written and read with raw SQL (src/embeddings.ts); Prisma can't query vectors.
+  embedding      Unsupported("vector(1024)")?
+  /// The model that produced `embedding`. Only vectors from the same model are compared.
+  embeddingModel String?
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
