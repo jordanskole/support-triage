@@ -26,8 +26,9 @@ export async function backfillEmbeddings(
 }
 
 /**
- * Saves each label as a verified suggestion. Submissions that already have a
- * suggestion are left alone. Checks every label before writing any.
+ * Saves each label as a backfilled answer: the label's team picked, holding and
+ * answering it, with the label's reasoning as the answer. Submissions that
+ * already have a suggestion are left alone. Checks every label before writing any.
  */
 export async function applyLabels(
   db: PrismaClient,
@@ -47,17 +48,20 @@ export async function applyLabels(
   if (problems.length > 0) throw new Error(`Labels not applied: ${problems.join("; ")}`);
 
   const toCreate = labels.filter((l) => !byId.get(l.submissionId)!.suggestedTeam);
+  const answeredAt = new Date();
   await db.$transaction(
-    toCreate.map((l) =>
-      db.suggestedTeam.create({
-        data: {
-          formSubmissionId: l.submissionId,
-          teamId: teams.get(l.team)!,
-          reasoning: l.reasoning,
-          hitlVerified: true,
-        },
-      }),
-    ),
+    toCreate.flatMap((l) => {
+      const teamId = teams.get(l.team)!;
+      return [
+        db.suggestedTeam.create({
+          data: { formSubmissionId: l.submissionId, teamId, reasoning: l.reasoning },
+        }),
+        db.formSubmission.update({
+          where: { id: l.submissionId },
+          data: { holderTeamId: teamId, answer: l.reasoning, answeredAt, answerBackfilled: true },
+        }),
+      ];
+    }),
   );
   return { created: toCreate.length, skipped: labels.length - toCreate.length };
 }

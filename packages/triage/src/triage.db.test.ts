@@ -56,13 +56,18 @@ async function seed() {
   });
   await setEmbedding(db, neighbour.id, unit(0), MODEL);
   await db.suggestedTeam.create({
+    data: { formSubmissionId: neighbour.id, teamId: finance.id, reasoning: "duplicate charge" },
+  });
+  await db.formSubmission.update({
+    where: { id: neighbour.id },
     data: {
-      formSubmissionId: neighbour.id,
-      teamId: finance.id,
-      reasoning: "duplicate charge",
-      hitlVerified: true,
+      holderTeamId: finance.id,
+      answer: "duplicate charge",
+      answeredAt: new Date(),
+      answerBackfilled: true,
     },
   });
+  return { finance };
 }
 
 const counts = async () => ({
@@ -87,7 +92,7 @@ describe("triage", () => {
       where: { formSubmissionId: result.submissionId },
       include: { team: true, formSubmission: true },
     });
-    expect(suggestion).toMatchObject({ hitlVerified: false, reasoning: "it's billing" });
+    expect(suggestion).toMatchObject({ reasoning: "it's billing" });
     expect(suggestion.team.name).toBe("Finance");
     expect(suggestion.formSubmission).toMatchObject({
       submittedValue: "refund please",
@@ -95,7 +100,18 @@ describe("triage", () => {
     });
   });
 
-  it("passes DB teams and the verified neighbour to the classifier", async () => {
+  it("sets the holder to the suggested team and leaves it unanswered", async () => {
+    const { finance } = await seed();
+    const deps = { embedder: fakeEmbedder().embedder, classifier: fakeClassifier().classifier };
+
+    const result = await triage(db, deps, { text: "refund please", email: "ada@example.com" });
+
+    expect(
+      await db.formSubmission.findUniqueOrThrow({ where: { id: result.submissionId } }),
+    ).toMatchObject({ holderTeamId: finance.id, answer: null, answeredAt: null });
+  });
+
+  it("passes DB teams and the answered neighbour to the classifier", async () => {
     await seed();
     const { embedder } = fakeEmbedder();
     const { classifier, calls } = fakeClassifier();

@@ -97,9 +97,11 @@ export async function triage(
 
     const teamId = teams.find((t) => t.name === team)?.id;
     if (!teamId) throw new Error(`Unknown team "${team}"`);
-    await db.suggestedTeam.create({
-      data: { formSubmissionId: submission.id, teamId, reasoning },
-    });
+    // The pick is an assignment: the team holds the submission from now on.
+    await db.$transaction([
+      db.suggestedTeam.create({ data: { formSubmissionId: submission.id, teamId, reasoning } }),
+      db.formSubmission.update({ where: { id: submission.id }, data: { holderTeamId: teamId } }),
+    ]);
 
     return { submissionId: submission.id, team, reasoning, neighbours };
   } catch (error) {

@@ -11,8 +11,8 @@ export type EvalReport = {
 };
 
 /**
- * Leave-one-out over every verified submission embedded with `model`: hide it
- * from retrieval, ask the classifier, and compare with the human's team.
+ * Leave-one-out over every answered submission embedded with `model`: hide it
+ * from retrieval, ask the classifier, and compare with the team that answered.
  * Reuses stored embeddings and writes nothing.
  */
 export async function evaluate(
@@ -20,14 +20,10 @@ export async function evaluate(
   classifier: Classifier,
   opts: { model: string },
 ): Promise<EvalReport> {
-  const verified = await db.suggestedTeam.findMany({
-    where: { hitlVerified: true, formSubmission: { embeddingModel: opts.model } },
-    select: {
-      formSubmission: { select: { id: true, submittedValue: true } },
-      team: { select: { name: true } },
-      correctedTeam: { select: { name: true } },
-    },
-    orderBy: { formSubmission: { createdAt: "asc" } },
+  const answered = await db.formSubmission.findMany({
+    where: { answeredAt: { not: null }, embeddingModel: opts.model },
+    select: { id: true, submittedValue: true, holderTeam: { select: { name: true } } },
+    orderBy: { createdAt: "asc" },
   });
   const teams = await db.team.findMany({
     select: { name: true, description: true },
@@ -36,16 +32,16 @@ export async function evaluate(
   const guidance = await getRoutingGuidance(db);
 
   const report: EvalReport = {
-    total: verified.length,
+    total: answered.length,
     correct: 0,
     misses: [],
     failures: [],
     usage: { inputTokens: 0, outputTokens: 0 },
   };
 
-  for (const row of verified) {
-    const { id, submittedValue } = row.formSubmission;
-    const expected = row.correctedTeam?.name ?? row.team.name;
+  for (const { id, submittedValue, holderTeam } of answered) {
+    // The CHECK constraint guarantees an answered submission has a holder.
+    const expected = holderTeam!.name;
     try {
       const embedding = await getEmbedding(db, id);
       if (!embedding) throw new Error("no embedding");

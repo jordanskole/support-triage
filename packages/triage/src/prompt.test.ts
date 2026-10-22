@@ -14,7 +14,9 @@ const input: ClassifyInput = {
       submissionId: "s1",
       text: "I was charged twice",
       team: "Finance",
-      reasoning: "Duplicate charge is billing.",
+      answer: "Refunded you.",
+      backfilled: false,
+      transfers: [{ from: "Support", to: "Finance", reason: "money back" }],
       similarity: 0.8312,
     },
   ],
@@ -33,17 +35,35 @@ describe("buildPrompt", () => {
     expect(buildPrompt(input).system).toContain("Prefer the team that must act first.");
   });
 
-  it("user includes each neighbour's text, team and reasoning, then the request last", () => {
+  it("user includes each neighbour's text, answering team, answer and moves, then the request last", () => {
     const { user } = buildPrompt(input);
     expect(user).toContain("I was charged twice");
-    expect(user).toContain("Finance");
-    expect(user).toContain("Duplicate charge is billing.");
+    expect(user).toContain("Answered by: Finance");
+    expect(user).toContain("Answer sent to the customer");
+    expect(user).toContain("Refunded you.");
+    expect(user).toContain("Support → Finance");
+    expect(user).toContain("money back");
     expect(user).toContain("0.83");
     expect(user.trimEnd().endsWith("Can I get a refund?")).toBe(true);
   });
 
-  it("says there are no past decisions when neighbours is empty", () => {
+  it("labels a backfilled answer as a reviewer's routing note", () => {
+    const neighbour = { ...input.neighbours[0]!, backfilled: true, transfers: [] };
+    const { user } = buildPrompt({ ...input, neighbours: [neighbour] });
+    expect(user).toContain("Reviewer's routing note");
+    expect(user).not.toContain("Answer sent to the customer");
+  });
+
+  it("names an unrouted start as Unrouted", () => {
+    const neighbour = {
+      ...input.neighbours[0]!,
+      transfers: [{ from: null, to: "Finance", reason: "billing" }],
+    };
+    expect(buildPrompt({ ...input, neighbours: [neighbour] }).user).toContain("Unrouted → Finance");
+  });
+
+  it("says there are no past requests when neighbours is empty", () => {
     const { user } = buildPrompt({ ...input, neighbours: [] });
-    expect(user).toContain("no past decisions");
+    expect(user).toContain("no past requests");
   });
 });

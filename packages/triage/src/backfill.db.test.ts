@@ -57,19 +57,24 @@ describe("backfillEmbeddings", () => {
 });
 
 describe("applyLabels", () => {
-  it("creates verified suggestions from labels", async () => {
-    const { a } = await seed();
+  it("turns labels into backfilled answers held by the label's team", async () => {
+    const { finance, a } = await seed();
 
     expect(
       await applyLabels(db, [{ submissionId: a.id, team: "Finance", reasoning: "money" }]),
     ).toEqual({ created: 1, skipped: 0 });
 
-    const suggestion = await db.suggestedTeam.findUniqueOrThrow({
-      where: { formSubmissionId: a.id },
-      include: { team: true },
+    const row = await db.formSubmission.findUniqueOrThrow({
+      where: { id: a.id },
+      include: { suggestedTeam: true },
     });
-    expect(suggestion).toMatchObject({ hitlVerified: true, reasoning: "money" });
-    expect(suggestion.team.name).toBe("Finance");
+    expect(row).toMatchObject({
+      holderTeamId: finance.id,
+      answer: "money",
+      answerBackfilled: true,
+    });
+    expect(row.answeredAt).not.toBeNull();
+    expect(row.suggestedTeam).toMatchObject({ teamId: finance.id, reasoning: "money" });
   });
 
   it("does not overwrite an existing suggestion", async () => {
@@ -83,7 +88,10 @@ describe("applyLabels", () => {
     ).toEqual({ created: 0, skipped: 1 });
     expect(
       await db.suggestedTeam.findUniqueOrThrow({ where: { formSubmissionId: a.id } }),
-    ).toMatchObject({ reasoning: "agent pick", hitlVerified: false });
+    ).toMatchObject({ reasoning: "agent pick" });
+    expect(await db.formSubmission.findUniqueOrThrow({ where: { id: a.id } })).toMatchObject({
+      answer: null,
+    });
   });
 
   it.each([
@@ -98,5 +106,6 @@ describe("applyLabels", () => {
 
     await expect(applyLabels(db, labels)).rejects.toThrow();
     expect(await db.suggestedTeam.count()).toBe(0);
+    expect(await db.formSubmission.count({ where: { answeredAt: { not: null } } })).toBe(0);
   });
 });

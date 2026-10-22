@@ -29,27 +29,34 @@ function fakeClassifier(team: string, failOn: string[] = []) {
   return { classifier, calls };
 }
 
-/** Three verified rows: two Finance (one corrected from Support), one Support. */
+/** Three answered rows: two Finance (one transferred from Support), one Support. */
 async function seed() {
   const finance = await db.team.create({ data: { name: "Finance", description: "money" } });
   const support = await db.team.create({ data: { name: "Support", description: "help" } });
   const user = await db.user.create({ data: { email: "ada@example.com" } });
   const rows = [
-    { text: "refund", teamId: finance.id, correctedTeamId: undefined, axis: 0 },
-    { text: "invoice", teamId: support.id, correctedTeamId: finance.id, axis: 1 },
-    { text: "login", teamId: support.id, correctedTeamId: undefined, axis: 2 },
+    { text: "refund", teamId: finance.id, movedTo: undefined, axis: 0 },
+    { text: "invoice", teamId: support.id, movedTo: finance.id, axis: 1 },
+    { text: "login", teamId: support.id, movedTo: undefined, axis: 2 },
   ];
   const ids: Record<string, string> = {};
   for (const r of rows) {
     const s = await db.formSubmission.create({ data: { submittedValue: r.text, userId: user.id } });
     await setEmbedding(db, s.id, unit(r.axis), MODEL);
     await db.suggestedTeam.create({
+      data: { formSubmissionId: s.id, teamId: r.teamId, reasoning: "auto" },
+    });
+    if (r.movedTo) {
+      await db.transfer.create({
+        data: { formSubmissionId: s.id, fromTeamId: r.teamId, toTeamId: r.movedTo, reason: "money" },
+      });
+    }
+    await db.formSubmission.update({
+      where: { id: s.id },
       data: {
-        formSubmissionId: s.id,
-        teamId: r.teamId,
-        correctedTeamId: r.correctedTeamId,
-        reasoning: "human",
-        hitlVerified: true,
+        holderTeamId: r.movedTo ?? r.teamId,
+        answer: `answer ${r.text}`,
+        answeredAt: new Date(),
       },
     });
     ids[r.text] = s.id;
@@ -69,7 +76,7 @@ describe("evaluate", () => {
     expect(report.usage).toEqual({ inputTokens: 30, outputTokens: 6 });
   });
 
-  it("never passes a submission as its own neighbour", async () => {
+  it("never shows a held-out row its own answer", async () => {
     await seed();
     const { classifier, calls } = fakeClassifier("Finance");
     await evaluate(db, classifier, { model: MODEL });
@@ -77,8 +84,29 @@ describe("evaluate", () => {
     expect(calls).toHaveLength(3);
     for (const call of calls) {
       expect(call.neighbours.map((n) => n.text)).not.toContain(call.request);
+      expect(call.neighbours.map((n) => n.answer)).not.toContain(`answer ${call.request}`);
       expect(call.neighbours).toHaveLength(2);
     }
+  });
+
+  it("ignores open submissions", async () => {
+    await seed();
+    const support = await db.team.findUniqueOrThrow({ where: { name: "Support" } });
+    const user = await db.user.findFirstOrThrow();
+    const open = await db.formSubmission.create({
+      data: { submittedValue: "still open", userId: user.id, holderTeamId: support.id },
+    });
+    await setEmbedding(db, open.id, unit(3), MODEL);
+    await db.suggestedTeam.create({
+      data: { formSubmissionId: open.id, teamId: support.id, reasoning: "auto" },
+    });
+    const { classifier, calls } = fakeClassifier("Finance");
+
+    const report = await evaluate(db, classifier, { model: MODEL });
+
+    expect(report.total).toBe(3);
+    expect(calls.map((c) => c.request)).not.toContain("still open");
+    for (const call of calls) expect(call.neighbours.map((n) => n.text)).not.toContain("still open");
   });
 
   it("writes nothing", async () => {

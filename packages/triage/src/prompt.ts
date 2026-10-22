@@ -12,16 +12,22 @@ export function buildPrompt(input: ClassifyInput): { system: string; user: strin
 
   const past =
     input.neighbours.length === 0
-      ? "There are no past decisions similar to this request yet."
+      ? "There are no past requests similar to this one yet."
       : input.neighbours
-          .map(
-            (n, i) =>
-              `### Decision ${i + 1} (similarity ${n.similarity.toFixed(2)})\n` +
-              `Team: ${n.team}\nWhy: ${n.reasoning}\nRequest:\n${n.text}`,
+          .map((n, i) =>
+            [
+              `### Request ${i + 1} (similarity ${n.similarity.toFixed(2)})`,
+              `Answered by: ${n.team}`,
+              ...n.transfers.map((t) => `Moved: ${t.from ?? "Unrouted"} → ${t.to}: ${t.reason}`),
+              n.backfilled ? "Reviewer's routing note:" : "Answer sent to the customer:",
+              n.answer,
+              "Request:",
+              n.text,
+            ].join("\n"),
           )
           .join("\n\n");
   const user = [
-    "# Past decisions made by a human reviewer",
+    "# Past requests a team answered",
     past,
     "# New request",
     input.request,
