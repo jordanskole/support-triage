@@ -10,3 +10,5 @@ export { ClassificationError, claudeClassifier, TRIAGE_MODEL } from "./classifie
 export type { Classification, Classifier, ClassifyInput } from "./classifier.js";
 export { NEIGHBOUR_COUNT, SubmissionRejectedError, triage, TriageFailedError } from "./triage.js";
 export type { TriageResult } from "./triage.js";
+export { applyLabels, backfillEmbeddings } from "./backfill.js";
+export type { Label } from "./backfill.js";

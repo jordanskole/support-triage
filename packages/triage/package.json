@@ -19,7 +19,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage --passWithNoTests --exclude 'src/**/*.db.test.ts'",
     "test:watch": "vitest --exclude 'src/**/*.db.test.ts'",
-    "test:db": "turbo run build --filter=@ac-1/db --output-logs=errors-only && node ../db/scripts/with-test-db.mjs vitest run .db.test.ts"
+    "test:db": "turbo run build --filter=@ac-1/db --output-logs=errors-only && node ../db/scripts/with-test-db.mjs vitest run .db.test.ts",
+    "backfill": "node dist/cli/backfill.js"
   },
   "dependencies": {
     "@ac-1/db": "*",
