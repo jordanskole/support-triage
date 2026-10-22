@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { age, canDrop, originLabel } from "./format.js";
+import { age, canDrop, originLabel, trailTitle } from "./format.js";
 
 describe("originLabel", () => {
   it("names where a card came from without naming the model", () => {
@@ -35,5 +35,24 @@ describe("canDrop", () => {
   it("allows any other team, including from unrouted", () => {
     expect(canDrop({ holderTeamId: "finance" }, "support")).toBe(true);
     expect(canDrop({ holderTeamId: null }, "support")).toBe(true);
+  });
+});
+
+describe("trailTitle", () => {
+  const at = new Date();
+
+  it("titles each kind of trail entry", () => {
+    expect(trailTitle({ kind: "auto", team: "Support", reasoning: "r", at })).toBe(
+      "Auto-routed to Support",
+    );
+    expect(trailTitle({ kind: "transfer", from: "Support", to: "Finance", reason: "r", at })).toBe(
+      "Support → Finance",
+    );
+    expect(trailTitle({ kind: "transfer", from: null, to: "Finance", reason: "r", at })).toBe(
+      "Unrouted → Finance",
+    );
+    expect(trailTitle({ kind: "answer", team: "Finance", body: "b", backfilled: false, at })).toBe(
+      "Answered by Finance",
+    );
   });
 });

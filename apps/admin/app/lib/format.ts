@@ -1,4 +1,4 @@
-import type { CardOrigin } from "@ac-1/db";
+import type { CardOrigin, TrailEntry } from "@ac-1/db";
 
 /** Where a card came from, in words that never name the model. */
 export function originLabel(origin: CardOrigin): string {
@@ -28,4 +28,16 @@ export function age(from: Date, now: Date): string {
 /** A card can be dropped on any column except the one holding it. */
 export function canDrop(card: { holderTeamId: string | null }, targetTeamId: string): boolean {
   return card.holderTeamId !== targetTeamId;
+}
+
+/** The headline for one step in a submission's trail. */
+export function trailTitle(entry: TrailEntry): string {
+  switch (entry.kind) {
+    case "auto":
+      return `Auto-routed to ${entry.team}`;
+    case "transfer":
+      return `${entry.from ?? "Unrouted"} → ${entry.to}`;
+    case "answer":
+      return `Answered by ${entry.team}`;
+  }
 }
