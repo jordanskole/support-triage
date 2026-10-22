@@ -1,7 +1,7 @@
 # Admin board: design
 
 **Date:** 2026-10-21
-**Status:** Draft, awaiting approval
+**Status:** Approved by the owner, 2026-10-21
 
 ## Why
 
@@ -91,7 +91,7 @@ That answer is the important artefact. ac-1 was a code-review interview task: "b
 
 - **Location:** `apps/admin`, an npm workspace like the others, wired into Turborepo (build, typecheck, test).
 - **Stack (my call):** TanStack Start with **server functions** (or server routes), so the browser never connects to Postgres. Server code uses `@ac-1/db`. This matches `apps/web`'s framework, but admin can't be SPA-only, because it needs a server.
-- **Drag and drop (my call, the owner may swap it):** **`@atlaskit/pragmatic-drag-and-drop`**. It's maintained (4.0.0, Sept 2026), framework-agnostic and small.
+- **Drag and drop (my call; the owner confirmed it after checking their previous library was dnd-kit):** **`@atlaskit/pragmatic-drag-and-drop`**. It's maintained (4.0.0, Sept 2026), framework-agnostic and small.
   - `@dnd-kit/core` hasn't been published since Dec 2024, and its successor `@dnd-kit/react` is still 0.x.
   - Pragmatic DnD doesn't do keyboard dragging, but the drawer's Transfer control is the keyboard path, so nothing is lost.
   - The owner has used a DnD library before and may prefer it. If they name it, use that instead.
