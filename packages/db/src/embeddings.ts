@@ -1,5 +1,8 @@
 import type { PrismaClient } from "./generated/prisma/client.js";
 
+/** A client or an interactive-transaction client; both can run raw SQL. */
+type RawDb = Pick<PrismaClient, "$executeRaw" | "$queryRaw">;
+
 /** Length of `FormSubmission.embedding`; matches `vector(1024)` in schema.prisma. */
 export const EMBEDDING_DIMENSIONS = 1024;
 
@@ -25,7 +28,7 @@ function toVectorLiteral(vector: number[]): string {
 }
 
 export async function setEmbedding(
-  db: PrismaClient,
+  db: RawDb,
   submissionId: string,
   vector: number[],
   model: string,
@@ -38,7 +41,7 @@ export async function setEmbedding(
 }
 
 export async function getEmbedding(
-  db: PrismaClient,
+  db: RawDb,
   submissionId: string,
 ): Promise<{ vector: number[]; model: string } | null> {
   const rows = await db.$queryRaw<{ embedding: string; embeddingModel: string }[]>`
@@ -55,7 +58,7 @@ export async function getEmbedding(
  * embedded with the same `model` are compared.
  */
 export async function findNeighbours(
-  db: PrismaClient,
+  db: RawDb,
   opts: { vector: number[]; model: string; k: number; excludeSubmissionId?: string },
 ): Promise<Neighbour[]> {
   const literal = toVectorLiteral(opts.vector);
@@ -81,7 +84,7 @@ export async function findNeighbours(
 
 /** Submissions with no embedding, or one made by a different model. */
 export async function submissionsNeedingEmbedding(
-  db: PrismaClient,
+  db: RawDb,
   model: string,
 ): Promise<{ id: string; submittedValue: string }[]> {
   return db.$queryRaw`
