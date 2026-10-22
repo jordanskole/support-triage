@@ -1,4 +1,4 @@
-import type { Board as BoardData } from "@ac-1/db";
+import type { Board as BoardData } from "@support-triage/db";
 import { HStack } from "@chakra-ui/react";
 import type { CardDragData } from "~/lib/transfer";
 import { BoardColumn } from "./BoardColumn";

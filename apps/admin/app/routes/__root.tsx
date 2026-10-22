@@ -8,7 +8,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "ac-1 board" },
+      { title: "Support Triage board" },
     ],
   }),
   component: RootComponent,

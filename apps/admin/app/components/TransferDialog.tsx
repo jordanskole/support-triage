@@ -1,4 +1,4 @@
-import { MAX_NOTE_LENGTH } from "@ac-1/db/limits";
+import { MAX_NOTE_LENGTH } from "@support-triage/db/limits";
 import { Button, CloseButton, Dialog, Field, Portal, Textarea } from "@chakra-ui/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";

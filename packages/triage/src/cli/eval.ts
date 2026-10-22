@@ -1,4 +1,4 @@
-import { createDb } from "@ac-1/db";
+import { createDb } from "@support-triage/db";
 import { EMBEDDING_MODEL } from "../embedder.js";
 import { loadRootEnv, requireEnv } from "../env.js";
 import { evaluate } from "../eval.js";

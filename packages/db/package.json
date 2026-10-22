@@ -1,5 +1,5 @@
 {
-  "name": "@ac-1/db",
+  "name": "@support-triage/db",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",

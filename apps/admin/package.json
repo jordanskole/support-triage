@@ -1,5 +1,5 @@
 {
-  "name": "@ac-1/admin",
+  "name": "@support-triage/admin",
   "private": true,
   "type": "module",
   "scripts": {
@@ -17,7 +17,7 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
-    "@ac-1/db": "*",
+    "@support-triage/db": "*",
     "@atlaskit/pragmatic-drag-and-drop": "^4.0.0",
     "@chakra-ui/react": "^3.37.0",
     "@emotion/react": "^11.14.0",

@@ -1,4 +1,4 @@
-import { EMBEDDING_DIMENSIONS } from "@ac-1/db";
+import { EMBEDDING_DIMENSIONS } from "@support-triage/db";
 
 /** Turns text into vectors. `model` is stored next to each vector it produces. */
 export interface Embedder {

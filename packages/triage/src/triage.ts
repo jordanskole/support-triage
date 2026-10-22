@@ -5,7 +5,7 @@ import {
   type Neighbour,
   type PrismaClient,
   setEmbedding,
-} from "@ac-1/db";
+} from "@support-triage/db";
 import type { Classifier } from "./classifier.js";
 import type { Embedder } from "./embedder.js";
 

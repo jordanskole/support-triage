@@ -1,5 +1,5 @@
 /**
- * @ac-1/db — Prisma client and schema shared by apps in this monorepo.
+ * @support-triage/db — Prisma client and schema shared by apps in this monorepo.
  */
 
 export {

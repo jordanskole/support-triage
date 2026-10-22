@@ -1,4 +1,4 @@
-import { createDb, type PrismaClient } from "@ac-1/db";
+import { createDb, type PrismaClient } from "@support-triage/db";
 
 export function testDb(): PrismaClient {
   const url = process.env.DATABASE_URL_TEST;

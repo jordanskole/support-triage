@@ -1,4 +1,4 @@
-import { BoardConflictError, BoardValidationError } from "@ac-1/db";
+import { BoardConflictError, BoardValidationError } from "@support-triage/db";
 
 /** What a board action tells the client: done, someone got there first, or bad input. */
 export type ActionResult =

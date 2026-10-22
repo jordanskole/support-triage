@@ -1,5 +1,5 @@
 {
-  "name": "@ac-1/web",
+  "name": "@support-triage/web",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,7 +16,7 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
-    "@ac-1/schema": "*",
+    "@support-triage/schema": "*",
     "@tanstack/react-router": "^1.170.45",
     "@tanstack/react-start": "^1.169.3",
     "react": "^19.3.1",

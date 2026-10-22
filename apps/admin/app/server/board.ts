@@ -4,7 +4,7 @@ import {
   getBoard,
   getSubmissionDetail,
   transferSubmission,
-} from "@ac-1/db";
+} from "@support-triage/db";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getDb } from "./db";

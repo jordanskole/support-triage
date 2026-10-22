@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { createDb } from "@ac-1/db";
+import { createDb } from "@support-triage/db";
 import { z } from "zod";
 import { applyLabels, backfillEmbeddings } from "../backfill.js";
 import { voyageEmbedder } from "../embedder.js";

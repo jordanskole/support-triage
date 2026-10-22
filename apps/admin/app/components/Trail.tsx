@@ -1,4 +1,4 @@
-import type { TrailEntry } from "@ac-1/db";
+import type { TrailEntry } from "@support-triage/db";
 import { Badge, HStack, Text, Timeline } from "@chakra-ui/react";
 import { trailTitle } from "~/lib/format";
 

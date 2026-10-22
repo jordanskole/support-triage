@@ -1,5 +1,5 @@
 import { parseArgs } from "node:util";
-import { createDb } from "@ac-1/db";
+import { createDb } from "@support-triage/db";
 import { loadRootEnv, requireEnv } from "../env.js";
 import { SubmissionRejectedError, triage, TriageFailedError } from "../triage.js";
 import { realClients } from "./clients.js";

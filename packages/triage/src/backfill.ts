@@ -1,4 +1,4 @@
-import { type PrismaClient, setEmbedding, submissionsNeedingEmbedding } from "@ac-1/db";
+import { type PrismaClient, setEmbedding, submissionsNeedingEmbedding } from "@support-triage/db";
 import type { Embedder } from "./embedder.js";
 
 /** A human's routing decision for an existing submission. */

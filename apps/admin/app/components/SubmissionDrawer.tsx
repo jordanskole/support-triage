@@ -1,5 +1,5 @@
-import { MAX_NOTE_LENGTH } from "@ac-1/db/limits";
-import type { SubmissionDetail } from "@ac-1/db";
+import { MAX_NOTE_LENGTH } from "@support-triage/db/limits";
+import type { SubmissionDetail } from "@support-triage/db";
 import {
   Button,
   CloseButton,

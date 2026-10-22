@@ -1,4 +1,4 @@
-import { EMBEDDING_DIMENSIONS, ROUTING_GUIDANCE_KEY, setEmbedding } from "@ac-1/db";
+import { EMBEDDING_DIMENSIONS, ROUTING_GUIDANCE_KEY, setEmbedding } from "@support-triage/db";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { ClassificationError, type Classifier, type ClassifyInput } from "./classifier.js";
 import type { Embedder } from "./embedder.js";

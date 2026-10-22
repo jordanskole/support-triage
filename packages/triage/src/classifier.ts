@@ -1,6 +1,6 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { jsonSchemaOutputFormat } from "@anthropic-ai/sdk/helpers/json-schema";
-import type { Neighbour } from "@ac-1/db";
+import type { Neighbour } from "@support-triage/db";
 import { z } from "zod";
 import { buildPrompt } from "./prompt.js";
 

@@ -1,4 +1,4 @@
-# ac-1
+# Support Triage
 
 A support request form with an AI triage agent behind it, and a board where teams work the requests.
 
@@ -33,7 +33,7 @@ The first 15 requests were labelled by hand before the board existed. They are s
 
 ## Data model
 
-The schema lives in `packages/db/prisma/schema.prisma`. The agent doesn't hard-code its routing rules: it reads team descriptions and its routing guidance (the `routingGuidance` setting) from the database, so routing changes are data edits, not code changes. The board doesn't edit them yet, so use Prisma Studio (`npm run db:studio -w @ac-1/db`).
+The schema lives in `packages/db/prisma/schema.prisma`. The agent doesn't hard-code its routing rules: it reads team descriptions and its routing guidance (the `routingGuidance` setting) from the database, so routing changes are data edits, not code changes. The board doesn't edit them yet, so use Prisma Studio (`npm run db:studio -w @support-triage/db`).
 
 | Model            | Key fields                                                          | Purpose                                                          |
 | ---------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------- |
@@ -57,9 +57,9 @@ apps/
   web/            # User-facing form: TanStack Start (React 19 + Vite), SPA mode
   admin/          # Team board: TanStack Start (SSR + server functions), Chakra UI v3
 packages/
-  db/             # Prisma schema, migrations, seed, shared client (@ac-1/db)
-  triage/         # Triage pipeline: Voyage embeddings, pgvector retrieval, Claude (@ac-1/triage)
-  schema/         # Shared Zod schemas used across apps (@ac-1/schema)
+  db/             # Prisma schema, migrations, seed, shared client (@support-triage/db)
+  triage/         # Triage pipeline: Voyage embeddings, pgvector retrieval, Claude (@support-triage/triage)
+  schema/         # Shared Zod schemas used across apps (@support-triage/schema)
 ```
 
 ## Getting started
@@ -82,7 +82,7 @@ nvm use
 npm install
 cp .env.example .env
 docker compose up -d postgres
-npm run db:deploy -w @ac-1/db && npm run db:seed -w @ac-1/db
+npm run db:deploy -w @support-triage/db && npm run db:seed -w @support-triage/db
 npm run dev
 ```
 
@@ -93,14 +93,14 @@ npm run dev
 | Variable            | Purpose                                                    |
 | ------------------- | ---------------------------------------------------------- |
 | `DATABASE_URL`      | Postgres connection string used by the app and Prisma CLI  |
-| `DATABASE_URL_TEST` | Separate database for `npm run test:db -w @ac-1/db`        |
+| `DATABASE_URL_TEST` | Separate database for `npm run test:db -w @support-triage/db`        |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_PORT` | Settings for the compose Postgres container |
 | `ANTHROPIC_API_KEY` | Claude, which picks the team (triage scripts only)         |
 | `VOYAGE_API_KEY`    | Voyage AI, which embeds requests (triage scripts only)     |
 
 ### Database scripts
 
-Run with `-w @ac-1/db`:
+Run with `-w @support-triage/db`:
 
 | Command              | What it does                                              |
 | -------------------- | --------------------------------------------------------- |
@@ -120,7 +120,7 @@ Run from the repo root. They need `ANTHROPIC_API_KEY` and `VOYAGE_API_KEY` in `.
 | `npm run triage:eval` | Leave-one-out score over every answered submission. Writes nothing | 1 Claude call per answered row |
 | `npm run triage:backfill -- [--labels <file>]` | Embed rows with no embedding (or one from an older model); with `--labels`, save human labels as backfilled answers | 1 Voyage call |
 
-Database tests for the pipeline: `npm run test:db -w @ac-1/triage`.
+Database tests for the pipeline: `npm run test:db -w @support-triage/triage`.
 
 ## Scripts
 
@@ -138,7 +138,7 @@ Run these from the repo root. Turborepo runs each task across all workspaces.
 
 - [ ] Replace the placeholder home page in `apps/web` with the "How can I help?" form
 - [ ] Define a `SupportRequest` schema in `packages/schema`
-- [x] Build the triage agent (`@ac-1/triage`, CLI for now): retrieval over verified past decisions + Claude Haiku
+- [x] Build the triage agent (`@support-triage/triage`, CLI for now): retrieval over verified past decisions + Claude Haiku
 - [ ] Run the triage agent server-side behind the form
 - [ ] Decide how a routed request reaches its team (email, Slack, ticketing system, etc.)
 - [ ] Hosted deployment of `apps/web`

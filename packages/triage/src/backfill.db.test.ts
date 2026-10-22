@@ -1,4 +1,4 @@
-import { EMBEDDING_DIMENSIONS, getEmbedding, setEmbedding } from "@ac-1/db";
+import { EMBEDDING_DIMENSIONS, getEmbedding, setEmbedding } from "@support-triage/db";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { applyLabels, backfillEmbeddings } from "./backfill.js";
 import type { Embedder } from "./embedder.js";

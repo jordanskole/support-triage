@@ -1,4 +1,4 @@
-import type { CardOrigin, TrailEntry } from "@ac-1/db";
+import type { CardOrigin, TrailEntry } from "@support-triage/db";
 
 /** Where a card came from, in words that never name the model. */
 export function originLabel(origin: CardOrigin): string {

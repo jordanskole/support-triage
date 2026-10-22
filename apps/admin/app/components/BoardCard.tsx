@@ -1,4 +1,4 @@
-import type { BoardCard as Card } from "@ac-1/db";
+import type { BoardCard as Card } from "@support-triage/db";
 import { draggable } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { Card as ChakraCard, HStack, Text } from "@chakra-ui/react";
 import { useEffect, useRef, useState } from "react";

@@ -1,4 +1,4 @@
-import { EMBEDDING_DIMENSIONS, setEmbedding } from "@ac-1/db";
+import { EMBEDDING_DIMENSIONS, setEmbedding } from "@support-triage/db";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { ClassificationError, type Classifier, type ClassifyInput } from "./classifier.js";
 import { evaluate } from "./eval.js";

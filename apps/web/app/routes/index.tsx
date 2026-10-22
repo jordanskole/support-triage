@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { parseExample } from "@ac-1/schema";
+import { parseExample } from "@support-triage/schema";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -8,13 +8,13 @@ export const Route = createFileRoute("/")({
 function Home() {
   const example = parseExample({
     id: "1",
-    name: "Hello from @ac-1/schema",
+    name: "Hello from @support-triage/schema",
     createdAt: new Date().toISOString(),
   });
 
   return (
     <main>
-      <h1>ac-1</h1>
+      <h1>Support Triage</h1>
       <p>{example.name}</p>
     </main>
   );

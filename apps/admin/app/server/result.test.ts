@@ -1,4 +1,4 @@
-import { BoardConflictError, BoardValidationError } from "@ac-1/db";
+import { BoardConflictError, BoardValidationError } from "@support-triage/db";
 import { describe, expect, it } from "vitest";
 import { toActionResult } from "./result.js";
 

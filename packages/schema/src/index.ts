@@ -1,5 +1,5 @@
 /**
- * @ac-1/schema — Shared schema definitions consumed by apps in this monorepo.
+ * @support-triage/schema — Shared schema definitions consumed by apps in this monorepo.
  */
 
 export { Example, parseExample } from "./example.js";

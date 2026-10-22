@@ -1,5 +1,5 @@
 /**
- * @ac-1/triage — routes a request to a team: embed it, find similar
+ * @support-triage/triage — routes a request to a team: embed it, find similar
  * human-verified requests, and let Claude pick. Server-side only (needs API keys).
  */
 

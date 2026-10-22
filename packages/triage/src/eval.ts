@@ -1,4 +1,4 @@
-import { findNeighbours, getEmbedding, getRoutingGuidance, type PrismaClient } from "@ac-1/db";
+import { findNeighbours, getEmbedding, getRoutingGuidance, type PrismaClient } from "@support-triage/db";
 import type { Classifier } from "./classifier.js";
 import { NEIGHBOUR_COUNT } from "./triage.js";
 
