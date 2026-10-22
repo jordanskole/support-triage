@@ -12,3 +12,5 @@ export { NEIGHBOUR_COUNT, SubmissionRejectedError, triage, TriageFailedError } f
 export type { TriageResult } from "./triage.js";
 export { applyLabels, backfillEmbeddings } from "./backfill.js";
 export type { Label } from "./backfill.js";
+export { evaluate } from "./eval.js";
+export type { EvalReport } from "./eval.js";

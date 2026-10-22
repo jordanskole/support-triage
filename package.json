@@ -11,7 +11,9 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
-    "triage:backfill": "turbo run build --filter=@ac-1/triage --output-logs=errors-only && npm run backfill -w @ac-1/triage --"
+    "triage:backfill": "turbo run build --filter=@ac-1/triage --output-logs=errors-only && npm run backfill -w @ac-1/triage --",
+    "triage": "turbo run build --filter=@ac-1/triage --output-logs=errors-only && npm run cli -w @ac-1/triage --",
+    "triage:eval": "turbo run build --filter=@ac-1/triage --output-logs=errors-only && npm run eval -w @ac-1/triage"
   },
   "packageManager": "npm@12.0.2",
   "engines": {
