@@ -8,6 +8,8 @@ export const TRIAGE_MODEL = "claude-haiku-5-5";
 
 export type ClassifyInput = {
   request: string;
+  /** How to weigh past decisions against descriptions; stored in the `Setting` table. */
+  guidance: string;
   teams: { name: string; description: string }[];
   neighbours: Neighbour[];
 };

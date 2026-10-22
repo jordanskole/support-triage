@@ -1,14 +1,5 @@
 import type { ClassifyInput } from "./classifier.js";
 
-/**
- * How Claude should weigh past human decisions against the team descriptions,
- * and what to do when they disagree.
- *
- * TODO(owner): replace this placeholder with the routing guidance.
- */
-export const ROUTING_GUIDANCE =
-  "Use the team descriptions and the past decisions to choose the single best team.";
-
 export function buildPrompt(input: ClassifyInput): { system: string; user: string } {
   const teams = input.teams.map((t) => `## ${t.name}\n${t.description}`).join("\n\n");
   const system = [
@@ -16,7 +7,7 @@ export function buildPrompt(input: ClassifyInput): { system: string; user: strin
     "# Teams",
     teams,
     "# How to decide",
-    ROUTING_GUIDANCE,
+    input.guidance,
   ].join("\n\n");
 
   const past =

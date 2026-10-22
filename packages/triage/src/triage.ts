@@ -1,5 +1,6 @@
 import {
   findNeighbours,
+  getRoutingGuidance,
   MAX_SUBMISSION_LENGTH,
   type Neighbour,
   type PrismaClient,
@@ -78,7 +79,13 @@ export async function triage(
       select: { id: true, name: true, description: true },
       orderBy: { name: "asc" },
     });
-    const { team, reasoning } = await deps.classifier.classify({ request: text, teams, neighbours });
+    const guidance = await getRoutingGuidance(db);
+    const { team, reasoning } = await deps.classifier.classify({
+      request: text,
+      guidance,
+      teams,
+      neighbours,
+    });
 
     const teamId = teams.find((t) => t.name === team)?.id;
     if (!teamId) throw new Error(`Unknown team "${team}"`);

@@ -12,9 +12,15 @@ export {
 } from "./embeddings.js";
 export type { Neighbour } from "./embeddings.js";
 export { MAX_SUBMISSION_LENGTH } from "./limits.js";
+export {
+  DEFAULT_ROUTING_GUIDANCE,
+  getRoutingGuidance,
+  ROUTING_GUIDANCE_KEY,
+} from "./settings.js";
 export type {
   FormSubmission,
   PrismaClient,
+  Setting,
   SuggestedTeam,
   Team,
   User,

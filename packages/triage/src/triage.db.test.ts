@@ -1,4 +1,4 @@
-import { EMBEDDING_DIMENSIONS, setEmbedding } from "@ac-1/db";
+import { EMBEDDING_DIMENSIONS, ROUTING_GUIDANCE_KEY, setEmbedding } from "@ac-1/db";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { ClassificationError, type Classifier, type ClassifyInput } from "./classifier.js";
 import type { Embedder } from "./embedder.js";
@@ -109,6 +109,19 @@ describe("triage", () => {
     expect(calls[0]!.request).toBe("refund please");
     expect(calls[0]!.neighbours.map((n) => n.text)).toEqual(["charged twice"]);
     expect(result.neighbours.map((n) => n.text)).toEqual(["charged twice"]);
+  });
+
+  it("passes the routing guidance stored in the database", async () => {
+    await seed();
+    await db.setting.create({ data: { key: ROUTING_GUIDANCE_KEY, value: "edited guidance" } });
+    const { classifier, calls } = fakeClassifier();
+
+    await triage(db, { embedder: fakeEmbedder().embedder, classifier }, {
+      text: "refund please",
+      email: "ada@example.com",
+    });
+
+    expect(calls[0]!.guidance).toBe("edited guidance");
   });
 
   it("reuses an existing user by email", async () => {

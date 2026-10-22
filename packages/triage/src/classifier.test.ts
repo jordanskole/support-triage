@@ -9,6 +9,7 @@ import {
 
 const input: ClassifyInput = {
   request: "Can I get a refund?",
+  guidance: "g",
   teams: [
     { name: "Support", description: "help" },
     { name: "Sales", description: "buy" },

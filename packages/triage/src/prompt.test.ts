@@ -4,6 +4,7 @@ import { buildPrompt } from "./prompt.js";
 
 const input: ClassifyInput = {
   request: "Can I get a refund?",
+  guidance: "Prefer the team that must act first.",
   teams: [
     { name: "Support", description: "Help using the product." },
     { name: "Finance", description: "Billing, refunds and invoices." },
@@ -26,6 +27,10 @@ describe("buildPrompt", () => {
       expect(system).toContain(team.name);
       expect(system).toContain(team.description);
     }
+  });
+
+  it("system includes the routing guidance", () => {
+    expect(buildPrompt(input).system).toContain("Prefer the team that must act first.");
   });
 
   it("user includes each neighbour's text, team and reasoning, then the request last", () => {

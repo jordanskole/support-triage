@@ -68,3 +68,12 @@ model SuggestedTeam {
   correctedTeamId String?
   correctedTeam   Team?   @relation("CorrectedTeam", fields: [correctedTeamId], references: [id], onDelete: Restrict)
 }
+
+/// Editable text the app reads at runtime, e.g. the triage agent's routing guidance.
+/// Keys and defaults live in src/settings.ts.
+model Setting {
+  key       String   @id
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  value     String   @db.Text
+}
