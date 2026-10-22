@@ -6,3 +6,5 @@
 export { EMBEDDING_MODEL, EmbeddingError, voyageEmbedder } from "./embedder.js";
 export type { Embedder } from "./embedder.js";
 export { requireEnv } from "./env.js";
+export { ClassificationError, claudeClassifier, TRIAGE_MODEL } from "./classifier.js";
+export type { Classification, Classifier, ClassifyInput } from "./classifier.js";
