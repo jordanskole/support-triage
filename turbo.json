@@ -49,6 +49,8 @@
   },
   "globalPassThroughEnv": [
     "DATABASE_URL",
-    "DATABASE_URL_TEST"
+    "DATABASE_URL_TEST",
+    "ANTHROPIC_API_KEY",
+    "VOYAGE_API_KEY"
   ]
 }

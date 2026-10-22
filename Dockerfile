@@ -8,6 +8,7 @@ COPY package.json package-lock.json ./
 COPY apps/web/package.json apps/web/
 COPY packages/db/package.json packages/db/
 COPY packages/schema/package.json packages/schema/
+COPY packages/triage/package.json packages/triage/
 RUN npm ci
 
 COPY . .
