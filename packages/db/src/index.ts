@@ -2,6 +2,23 @@
  * @ac-1/db — Prisma client and schema shared by apps in this monorepo.
  */
 
+export {
+  answerSubmission,
+  BoardConflictError,
+  BoardValidationError,
+  getAnswered,
+  getBoard,
+  getSubmissionDetail,
+  transferSubmission,
+} from "./board.js";
+export type {
+  AnsweredItem,
+  Board,
+  BoardCard,
+  CardOrigin,
+  SubmissionDetail,
+  TrailEntry,
+} from "./board.js";
 export { createDb } from "./client.js";
 export {
   EMBEDDING_DIMENSIONS,
