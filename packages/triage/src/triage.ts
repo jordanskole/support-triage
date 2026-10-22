@@ -59,13 +59,21 @@ export async function triage(
   const [vector] = await deps.embedder.embed([text]);
   if (!vector) throw new Error("The embedder returned no vector.");
 
-  const submission = await db.$transaction(async (tx) => {
-    const user = await tx.user.upsert({ where: { email }, create: { email }, update: {} });
-    const row = await tx.formSubmission.create({
-      data: { submittedValue: text, userId: user.id },
+  const save = () =>
+    db.$transaction(async (tx) => {
+      const user = await tx.user.upsert({ where: { email }, create: { email }, update: {} });
+      const row = await tx.formSubmission.create({
+        data: { submittedValue: text, userId: user.id },
+      });
+      await setEmbedding(tx, row.id, vector, deps.embedder.model);
+      return row;
     });
-    await setEmbedding(tx, row.id, vector, deps.embedder.model);
-    return row;
+  // Prisma's upsert is SELECT-then-INSERT, so two first requests from one email
+  // can both try to create the user. The loser rolls back; by the retry the
+  // winner's user is committed and the upsert finds it.
+  const submission = await save().catch((error: unknown) => {
+    if (isUniqueViolation(error)) return save();
+    throw error;
   });
 
   try {
@@ -97,4 +105,8 @@ export async function triage(
   } catch (error) {
     throw new TriageFailedError(submission.id, error);
   }
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return (error as { code?: unknown } | null)?.code === "P2002";
 }

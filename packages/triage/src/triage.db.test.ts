@@ -134,6 +134,21 @@ describe("triage", () => {
     expect(await counts()).toMatchObject({ submissions: 3 });
   });
 
+  it("handles concurrent first submissions from the same new email", async () => {
+    await seed();
+    const deps = { embedder: fakeEmbedder().embedder, classifier: fakeClassifier().classifier };
+
+    const results = await Promise.allSettled(
+      Array.from({ length: 12 }, (_, i) =>
+        triage(db, deps, { text: `request ${i}`, email: "burst@example.com" }),
+      ),
+    );
+
+    expect(results.filter((r) => r.status === "rejected")).toEqual([]);
+    expect(await db.user.count({ where: { email: "burst@example.com" } })).toBe(1);
+    expect(await db.formSubmission.count({ where: { user: { email: "burst@example.com" } } })).toBe(12);
+  });
+
   it("rejects text over 5000 characters without calling the embedder", async () => {
     await seed();
     const { embedder, calls } = fakeEmbedder();
