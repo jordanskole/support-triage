@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:18-alpine
+    image: pgvector/pgvector:0.8.7-pg18-trixie
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-ac1}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ac1}
@@ -9,7 +9,7 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       # Postgres 18 keeps versioned data dirs under /var/lib/postgresql.
-      - pgdata:/var/lib/postgresql
+      - pgvector-data:/var/lib/postgresql
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
@@ -40,4 +40,4 @@ services:
         condition: service_completed_successfully
 
 volumes:
-  pgdata:
+  pgvector-data:
