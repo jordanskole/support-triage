@@ -5,6 +5,7 @@ import {
   CloseButton,
   Drawer,
   Field,
+  NativeSelect,
   Portal,
   Spinner,
   Stack,
@@ -13,11 +14,25 @@ import {
 } from "@chakra-ui/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { transferTargets } from "~/lib/format";
+import type { PendingTransfer } from "~/lib/transfer";
 import { answerFn, getSubmissionFn } from "~/server/board";
 import { toaster } from "./toaster";
 import { Trail } from "./Trail";
 
-export function SubmissionDrawer({ id, onClose }: { id: string | null; onClose: () => void }) {
+type Team = { id: string; name: string };
+
+export function SubmissionDrawer({
+  id,
+  teams,
+  onClose,
+  onTransfer,
+}: {
+  id: string | null;
+  teams: Team[];
+  onClose: () => void;
+  onTransfer: (pending: PendingTransfer) => void;
+}) {
   const detail = useQuery({
     queryKey: ["submission", id],
     queryFn: () => getSubmissionFn({ data: { id: id! } }),
@@ -34,7 +49,7 @@ export function SubmissionDrawer({ id, onClose }: { id: string | null; onClose: 
               <Drawer.Title>Request</Drawer.Title>
             </Drawer.Header>
             {detail.data ? (
-              <Body detail={detail.data} onClose={onClose} />
+              <Body detail={detail.data} teams={teams} onClose={onClose} onTransfer={onTransfer} />
             ) : detail.data === null ? (
               <Drawer.Body>This request no longer exists.</Drawer.Body>
             ) : (
@@ -52,7 +67,17 @@ export function SubmissionDrawer({ id, onClose }: { id: string | null; onClose: 
   );
 }
 
-function Body({ detail, onClose }: { detail: SubmissionDetail; onClose: () => void }) {
+function Body({
+  detail,
+  teams,
+  onClose,
+  onTransfer,
+}: {
+  detail: SubmissionDetail;
+  teams: Team[];
+  onClose: () => void;
+  onTransfer: (pending: PendingTransfer) => void;
+}) {
   const queryClient = useQueryClient();
   const [answer, setAnswer] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -93,28 +118,60 @@ function Body({ detail, onClose }: { detail: SubmissionDetail; onClose: () => vo
           <Trail trail={detail.trail} />
         </Stack>
       </Drawer.Body>
-      {detail.status === "open" && (
+      {detail.status !== "answered" && (
         <Drawer.Footer>
-          <Stack w="full">
-            <Field.Root invalid={error !== null}>
-              <Field.Label>Answer the customer</Field.Label>
-              <Textarea
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                maxLength={MAX_NOTE_LENGTH}
-                rows={4}
-                placeholder="Write the answer. Sending it closes the request."
-              />
-              {error && <Field.ErrorText>{error}</Field.ErrorText>}
+          <Stack w="full" gap="4">
+            <Field.Root>
+              <Field.Label>Not ours? Transfer it</Field.Label>
+              <NativeSelect.Root size="sm">
+                <NativeSelect.Field
+                  value=""
+                  onChange={(e) => {
+                    const toTeam = teams.find((t) => t.id === e.currentTarget.value);
+                    if (toTeam) {
+                      onTransfer({
+                        submissionId: detail.id,
+                        expectedHolderTeamId: holder?.id ?? null,
+                        toTeam,
+                      });
+                    }
+                  }}
+                >
+                  <option value="" disabled>
+                    Transfer to…
+                  </option>
+                  {transferTargets(teams, holder?.id ?? null).map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </NativeSelect.Field>
+                <NativeSelect.Indicator />
+              </NativeSelect.Root>
             </Field.Root>
-            <Button
-              alignSelf="end"
-              onClick={send}
-              loading={sending}
-              disabled={answer.trim() === ""}
-            >
-              Send answer
-            </Button>
+            {holder && (
+              <Field.Root invalid={error !== null}>
+                <Field.Label>Answer the customer</Field.Label>
+                <Textarea
+                  value={answer}
+                  onChange={(e) => setAnswer(e.target.value)}
+                  maxLength={MAX_NOTE_LENGTH}
+                  rows={4}
+                  placeholder="Write the answer. Sending it closes the request."
+                />
+                {error && <Field.ErrorText>{error}</Field.ErrorText>}
+              </Field.Root>
+            )}
+            {holder && (
+              <Button
+                alignSelf="end"
+                onClick={send}
+                loading={sending}
+                disabled={answer.trim() === ""}
+              >
+                Send answer
+              </Button>
+            )}
           </Stack>
         </Drawer.Footer>
       )}

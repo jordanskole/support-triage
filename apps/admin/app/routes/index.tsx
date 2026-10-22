@@ -1,11 +1,13 @@
 import { Box, Heading, Spinner, Tabs, Text } from "@chakra-ui/react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { AnsweredList } from "~/components/AnsweredList";
 import { Board } from "~/components/Board";
 import { SubmissionDrawer } from "~/components/SubmissionDrawer";
 import { Toaster } from "~/components/toaster";
+import { TransferDialog } from "~/components/TransferDialog";
+import type { CardDragData, PendingTransfer } from "~/lib/transfer";
 import { getBoardFn } from "~/server/board";
 
 /** How often the board refetches, so new triage results and other people's moves show up. */
@@ -17,6 +19,16 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [pending, setPending] = useState<PendingTransfer | null>(null);
+  const onDropCard = useCallback(
+    (card: CardDragData, toTeam: { id: string; name: string }) =>
+      setPending({
+        submissionId: card.submissionId,
+        expectedHolderTeamId: card.holderTeamId,
+        toTeam,
+      }),
+    [],
+  );
   const board = useQuery({
     queryKey: ["board"],
     queryFn: () => getBoardFn(),
@@ -35,7 +47,12 @@ function Home() {
         </Tabs.List>
         <Tabs.Content value="board">
           {board.data ? (
-            <Board board={board.data} now={new Date(board.dataUpdatedAt)} onOpen={setOpenId} />
+            <Board
+              board={board.data}
+              now={new Date(board.dataUpdatedAt)}
+              onOpen={setOpenId}
+              onDropCard={onDropCard}
+            />
           ) : board.error ? (
             <Text color="fg.error">Couldn't load the board: {board.error.message}</Text>
           ) : (
@@ -46,7 +63,13 @@ function Home() {
           <AnsweredList onOpen={setOpenId} />
         </Tabs.Content>
       </Tabs.Root>
-      <SubmissionDrawer id={openId} onClose={() => setOpenId(null)} />
+      <SubmissionDrawer
+        id={openId}
+        teams={board.data?.teams ?? []}
+        onClose={() => setOpenId(null)}
+        onTransfer={setPending}
+      />
+      <TransferDialog pending={pending} onClose={() => setPending(null)} />
       <Toaster />
     </Box>
   );

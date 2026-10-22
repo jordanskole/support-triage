@@ -41,3 +41,11 @@ export function trailTitle(entry: TrailEntry): string {
       return `Answered by ${entry.team}`;
   }
 }
+
+/** The teams a request can be transferred to: all but the one holding it. */
+export function transferTargets<T extends { id: string }>(
+  teams: T[],
+  holderTeamId: string | null,
+): T[] {
+  return teams.filter((t) => t.id !== holderTeamId);
+}

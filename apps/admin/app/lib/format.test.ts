@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { age, canDrop, originLabel, trailTitle } from "./format.js";
+import { age, canDrop, originLabel, trailTitle, transferTargets } from "./format.js";
 
 describe("originLabel", () => {
   it("names where a card came from without naming the model", () => {
@@ -54,5 +54,21 @@ describe("trailTitle", () => {
     expect(trailTitle({ kind: "answer", team: "Finance", body: "b", backfilled: false, at })).toBe(
       "Answered by Finance",
     );
+  });
+});
+
+describe("transferTargets", () => {
+  const teams = [
+    { id: "a", name: "Agency" },
+    { id: "f", name: "Finance" },
+    { id: "s", name: "Support" },
+  ];
+
+  it("offers every team except the holder, in the given order", () => {
+    expect(transferTargets(teams, "f").map((t) => t.id)).toEqual(["a", "s"]);
+  });
+
+  it("offers every team for an unrouted request", () => {
+    expect(transferTargets(teams, null)).toEqual(teams);
   });
 });

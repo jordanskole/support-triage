@@ -1,6 +1,9 @@
 import type { BoardCard as Card } from "@ac-1/db";
+import { draggable } from "@atlaskit/pragmatic-drag-and-drop/element/adapter";
 import { Card as ChakraCard, HStack, Text } from "@chakra-ui/react";
+import { useEffect, useRef, useState } from "react";
 import { age, originLabel } from "~/lib/format";
+import type { CardDragData } from "~/lib/transfer";
 
 export function BoardCard({
   card,
@@ -11,11 +14,30 @@ export function BoardCard({
   now: Date;
   onOpen: (id: string) => void;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [dragging, setDragging] = useState(false);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    return draggable({
+      element,
+      getInitialData: (): CardDragData => ({
+        submissionId: card.id,
+        holderTeamId: card.holderTeamId,
+      }),
+      onDragStart: () => setDragging(true),
+      onDrop: () => setDragging(false),
+    });
+  }, [card.id, card.holderTeamId]);
+
   return (
     <ChakraCard.Root
+      ref={ref}
       size="sm"
       variant="outline"
-      cursor="pointer"
+      cursor="grab"
+      opacity={dragging ? 0.4 : 1}
       onClick={() => onOpen(card.id)}
       _hover={{ borderColor: "border.emphasized" }}
     >
